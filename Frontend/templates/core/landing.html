@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brainify — AI Brain MRI Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script>(function(){var t=localStorage.getItem('brainify_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
+<link rel="stylesheet" href="{% static 'core/css/landing.css' %}">
+</head>
+<body>
+
+<nav>
+  <a href="/" class="n-brand">
+    <div class="n-icon">B</div>
+    <span class="n-name">Brainify</span>
+  </a>
+  <div class="n-right">
+    <div class="n-theme">
+      <div class="n-topt" data-t="dark" title="Dark mode"><span class="material-symbols-rounded">dark_mode</span></div>
+      <div class="n-topt" data-t="light" title="Light mode"><span class="material-symbols-rounded">light_mode</span></div>
+    </div>
+    <a href="/login/" class="n-link">Sign in</a>
+    <a href="/signup/" class="n-cta">Get started</a>
+  </div>
+</nav>
+<br>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow"><span class="material-symbols-rounded">neurology</span>AI-Powered Radiology</div>
+    <h1>Brain MRI<br>Analysis,<br><span class="hero-em">reimagined.</span></h1>
+    <p class="hero-sub">Upload scans and get AI-powered tumor detection, plain-English report explanations, and live research updates — built for clinicians.</p>
+    <div class="hero-btns">
+      <a href="/signup/" class="btn-hero bh-primary"><span class="material-symbols-rounded">rocket_launch</span>Start for free</a>
+      <a href="/login/" class="btn-hero bh-ghost"><span class="material-symbols-rounded">login</span>Sign in</a>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-num">{{ total_scans|default:"0" }}</div><div class="stat-lbl">Scans processed</div></div>
+      <div class="stat-item"><div class="stat-num">{{ total_users|default:"0" }}</div><div class="stat-lbl">Clinicians</div></div>
+      <div class="stat-item"><div class="stat-num">94%</div><div class="stat-lbl">Accuracy</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="features">
+  <div class="s-label">What Brainify does</div>
+  <h2 class="s-title">Everything a neuro team needs</h2>
+  <p class="s-sub">From raw DICOM to clinical insight — in seconds, not hours.</p>
+  <div class="feat-grid">
+    <div class="fcard"><div class="ficon" style="background:rgba(107,143,232,.1)"><span class="material-symbols-rounded" style="color:#6B8FE8">image_search</span></div><h3>Tumor Detection</h3><p>Automated segmentation identifies tumor regions with confidence scores and severity classification.</p></div>
+    <div class="fcard"><div class="ficon" style="background:rgba(72,196,132,.1)"><span class="material-symbols-rounded" style="color:#48C484">description</span></div><h3>Report Explainer</h3><p>Paste any radiology report and get a plain-English breakdown of terms, findings, and clinical implications.</p></div>
+    <div class="fcard"><div class="ficon" style="background:rgba(160,128,232,.1)"><span class="material-symbols-rounded" style="color:#A080E8">newspaper</span></div><h3>Live Research Feed</h3><p>Curated brain tumor news from PubMed, Reddit, Google News, and ClinicalTrials.gov — live updates.</p></div>
+    <div class="fcard"><div class="ficon" style="background:rgba(56,184,176,.1)"><span class="material-symbols-rounded" style="color:#38B8B0">smart_toy</span></div><h3>AI Research Assistant</h3><p>Ask anything about glioblastoma, treatment protocols, or recent trials — powered by LLaMA 3.3 via Groq.</p></div>
+    <div class="fcard"><div class="ficon" style="background:rgba(212,152,64,.1)"><span class="material-symbols-rounded" style="color:#D49840">picture_as_pdf</span></div><h3>PDF Reports</h3><p>Download structured radiology reports with scan images, metrics, and clinical notes ready for handoff.</p></div>
+    <div class="fcard"><div class="ficon" style="background:rgba(217,96,96,.1)"><span class="material-symbols-rounded" style="color:#D96060">admin_panel_settings</span></div><h3>Admin Panel</h3><p>Manage users, view all scans, track analytics, and monitor login history from one central place.</p></div>
+  </div>
+</div>
+
+<div class="howto">
+  <div class="hw-inner">
+    <div class="s-label">How it works</div>
+    <h2 class="s-title">From upload to insight</h2>
+    <div class="hw-steps">
+      <div class="hw-step"><div class="hw-num">01</div><div><h4>Upload the scan</h4><p>Drag and drop a TIFF, PNG, JPG, or DICOM file. Add patient details and scan type.</p></div></div>
+      <div class="hw-step"><div class="hw-num">02</div><div><h4>AI analyses it</h4><p>The segmentation model runs automatically — detecting tumors, measuring area, scoring confidence.</p></div></div>
+      <div class="hw-step"><div class="hw-num">03</div><div><h4>Review and annotate</h4><p>View overlays, heatmaps, and comparisons. Add notes. Download the structured PDF report.</p></div></div>
+      <div class="hw-step"><div class="hw-num">04</div><div><h4>Ask the AI</h4><p>Paste the report into the chatbot for a plain-English explanation, or research follow-up questions.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="cta">
+  <h2>Ready to get started?</h2>
+  <p>Free to use. No credit card required.</p>
+  <a href="/signup/" class="btn-hero bh-primary"><span class="material-symbols-rounded">rocket_launch</span>Create your account</a>
+</div>
+
+<footer>
+  <div class="ft-brand"><div style="width:24px;height:24px;border-radius:6px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-style:italic;font-size:12px;color:#fff;font-weight:600">B</div>Brainify</div>
+  <div class="ft-right">Built for neuro-oncology teams</div>
+</footer>
+
+<script src="{% static 'core/js/landing.js' %}"></script>
+</body>
+</html>

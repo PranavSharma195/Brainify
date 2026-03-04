@@ -1,0 +1,17 @@
+django>=4.2
+psycopg2-binary>=2.9
+pillow>=10.0
+scikit-image>=0.21
+matplotlib>=3.7
+numpy>=1.24
+reportlab>=4.0
+requests>=2.31
+python-dotenv>=1.0
+beautifulsoup4>=4.12
+feedparser>=6.0
+tensorflow
+opencv-python-headless>=4.8
+keras
+nibabel>=5.0
+tqdm>=4.65
+kaggle>=1.5

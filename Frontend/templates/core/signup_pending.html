@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Check Your Email — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/signup_pending.css' %}">{% endblock %}
+{% block body %}
+<div class="auth-shell">
+  <div class="pend-box">
+
+    <div class="pend-logo">
+      <div class="pend-icon"><span class="material-symbols-rounded">neurology</span></div>
+      <div class="pend-brand">Brainify</div>
+    </div>
+
+    <div class="pend-card">
+      <div class="mail-icon">
+        <span class="material-symbols-rounded">mark_email_unread</span>
+      </div>
+
+      <h1 style="font-size:22px;font-weight:800;color:var(--white);margin-bottom:10px;letter-spacing:-.3px">
+        Check your inbox, {{ name }}
+      </h1>
+
+      <p style="font-size:14px;color:var(--soft);line-height:1.7;margin-bottom:6px">
+        We sent a verification link to
+      </p>
+      <div style="display:inline-block;padding:8px 18px;background:var(--card2);border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:13px;color:var(--blue);margin-bottom:20px">
+        {{ email }}
+      </div>
+
+      <p style="font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:24px">
+        Click the link in the email to verify your account.<br>
+        You <strong style="color:var(--soft)">cannot log in</strong> until you verify.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <form method="post" action="{% url 'resend_verification' %}">
+          {% csrf_token %}
+          <input type="hidden" name="email" value="{{ email }}">
+          <button type="submit" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center">
+            <span class="material-symbols-rounded">refresh</span>
+            Resend verification email
+          </button>
+        </form>
+        <a href="{% url 'login' %}" class="btn btn-blue btn-sm" style="justify-content:center">
+          <span class="material-symbols-rounded">login</span>
+          Go to Login
+        </a>
+      </div>
+
+      <!-- DEV MODE: show link directly if using console backend -->
+      {% if verify_url %}
+      <div class="dev-box">
+        <div style="font-size:11px;font-weight:700;color:#fbbf24;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">
+          ⚠ Dev Mode — Email not configured
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">
+          Real email not sent. Click this link to verify manually:
+        </div>
+        <a href="{{ verify_url }}" class="dev-link">{{ verify_url }}</a>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--dim)">
+      Wrong email? <a href="{% url 'signup' %}" style="color:var(--blue)">Sign up again</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}

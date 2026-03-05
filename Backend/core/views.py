@@ -119,4 +119,86 @@ def signup_view(request):
     return render(request,'core/signup.html')
 
 
+def resend_verification(request):
+    if request.method == 'POST':
+        email = request.POST.get('email','').strip().lower()
+        # Check pending signups first
+        try:
+            pending = PendingSignup.objects.get(email=email)
+            token = generate_token()
+            pending.token = token
+            pending.save()
+            from .email_utils import send_pending_verification_email
+            send_pending_verification_email(pending.full_name.split()[0], email, token)
+            messages.success(request, f'Verification email resent to {email}. Check your inbox.')
+            return render(request, 'core/signup_pending.html', {
+                'name': pending.full_name.split()[0], 'email': email,
+            })
+        except PendingSignup.DoesNotExist:
+            pass
+        # Legacy: existing unverified user
+        try:
+            user = User.objects.get(email=email)
+            profile = UserProfile.objects.get(user=user)
+            if profile.is_verified:
+                messages.info(request, 'Already verified. Please log in.')
+                return redirect('login')
+            token = generate_token()
+            profile.email_token = token; profile.save()
+            send_verification_email(user, token)
+            messages.success(request, f'Verification email resent to {email}.')
+        except (User.DoesNotExist, UserProfile.DoesNotExist):
+            messages.error(request, 'No account found with that email.')
+    return redirect('login')
 
+def verify_email(request, token):
+    print(f"[Brainify] Verifying token: {token[:20]}...")
+
+    # Check PendingSignup first (new flow — user not created yet)
+    try:
+        pending = PendingSignup.objects.get(token=token)
+        if pending.is_expired():
+            pending.delete()
+            messages.error(request, 'This verification link has expired. Please sign up again.')
+            return redirect('signup')
+
+        # Create the real user now
+        parts = pending.full_name.split(' ', 1)
+        base = pending.email.split('@')[0]
+        uname = base; n = 1
+        while User.objects.filter(username=uname).exists():
+            uname = f"{base}{n}"; n += 1
+
+        user = User.objects.create_user(
+            username=uname,
+            email=pending.email,
+            first_name=parts[0],
+            last_name=parts[1] if len(parts) > 1 else '',
+        )
+        user.password = pending.password_hash
+        user.save()
+
+        UserProfile.objects.create(user=user, role=pending.role, is_verified=True)
+        pending.delete()
+
+        login(request, user)
+        messages.success(request, f'Welcome to Brainify, {parts[0]}! Your account is verified.')
+        return redirect('upload')
+
+    except PendingSignup.DoesNotExist:
+        pass
+
+    # Legacy flow — check if existing profile has this token
+    try:
+        profile = UserProfile.objects.get(email_token=token)
+        profile.is_verified = True
+        profile.email_token = ''
+        profile.save()
+        login(request, profile.user)
+        messages.success(request, f'Email verified! Welcome, {profile.user.first_name or profile.user.username}!')
+        return redirect('upload')
+    except UserProfile.DoesNotExist:
+        pass
+
+    messages.error(request, 'This verification link is invalid or has already been used. Please sign in.')
+    return redirect('login')

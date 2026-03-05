@@ -1,0 +1,85 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Create Account — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/signup.css' %}">{% endblock %}
+{% block body %}
+<div class="aw">
+  <div class="aw-noise"></div>
+  <div class="abox">
+    <div class="atop">
+      <a href="/" class="al-logo">
+        <div class="al-logo-ico">B</div>
+        <span class="al-logo-nm">Brainify</span>
+      </a>
+      <div class="apill">
+        <div class="at" data-t="dark"><span class="material-symbols-rounded">dark_mode</span></div>
+        <div class="at" data-t="light"><span class="material-symbols-rounded">light_mode</span></div>
+      </div>
+    </div>
+
+    <div class="atitle">Create your account</div>
+    <div class="asub">Join the platform <span class="asub-free">Free forever</span></div>
+
+    {% for msg in messages %}
+    <div class="amsg {% if msg.tags == 'error' %}merr{% else %}mok{% endif %}">
+      <span class="material-symbols-rounded">{% if msg.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+      <span>{{ msg }}</span>
+    </div>
+    {% endfor %}
+
+    <div class="acard">
+      <a href="{% url 'google_login' %}" class="gbtn">
+        <span class="g-ico"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>
+        Sign up with Google
+      </a>
+      <div class="or">or create with email</div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="two">
+          <div class="fg"><label class="fl">Full Name *</label>
+            <div class="fi-wrap"><span class="fi-ico"><span class="material-symbols-rounded">person</span></span>
+            <input class="fi" name="name" placeholder="Pranav Sharma" required></div>
+          </div>
+          <div class="fg"><label class="fl">Email *</label>
+            <div class="fi-wrap"><span class="fi-ico"><span class="material-symbols-rounded">mail</span></span>
+            <input class="fi" type="email" name="email" placeholder="alkahospital@gmail.com" required></div>
+          </div>
+        </div>
+        <div class="two">
+          <div class="fg">
+            <label class="fl">Password *</label>
+            <div class="fi-wrap">
+              <span class="fi-ico"><span class="material-symbols-rounded">lock</span></span>
+              <input class="fi" type="password" name="password" id="spw" placeholder="Min 8 characters" required oninput="chkStr(this.value)">
+              <button type="button" class="fi-eye" onclick="var e=document.getElementById('spw');var b=this.querySelector('.material-symbols-rounded');if(e.type==='password'){e.type='text';b.textContent='visibility_off'}else{e.type='password';b.textContent='visibility'}"><span class="material-symbols-rounded">visibility</span></button>
+            </div>
+            <div class="pw-strength">
+              <div class="sb"><div class="sb-seg" id="s1"></div><div class="sb-seg" id="s2"></div><div class="sb-seg" id="s3"></div><div class="sb-seg" id="s4"></div></div>
+              <span class="pw-label" id="pw-label"></span>
+            </div>
+          </div>
+          <div class="fg"><label class="fl">Confirm *</label>
+            <div class="fi-wrap"><span class="fi-ico"><span class="material-symbols-rounded">lock_reset</span></span>
+            <input class="fi" type="password" name="confirm_password" placeholder="Repeat password" required></div>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:16px">
+          <label class="fl">Your Role</label>
+          <div class="rg">
+            <div class="ro"><input type="radio" name="role" id="rr" value="radiologist" checked><label class="ro-l" for="rr"><div class="ro-ico"><span class="material-symbols-rounded">radiology</span></div><span class="rl">Radiologist</span></label></div>
+            <div class="ro"><input type="radio" name="role" id="rn" value="neurologist"><label class="ro-l" for="rn"><div class="ro-ico"><span class="material-symbols-rounded">neurology</span></div><span class="rl">Neurologist</span></label></div>
+            <div class="ro"><input type="radio" name="role" id="rt" value="technician"><label class="ro-l" for="rt"><div class="ro-ico"><span class="material-symbols-rounded">settings</span></div><span class="rl">Technician</span></label></div>
+            <div class="ro"><input type="radio" name="role" id="re" value="researcher"><label class="ro-l" for="re"><div class="ro-ico"><span class="material-symbols-rounded">science</span></div><span class="rl">Researcher</span></label></div>
+          </div>
+        </div>
+        <button type="submit" class="btn-auth">Create Account →</button>
+      </form>
+    </div>
+    <p class="ar-foot">Already have an account? <a href="{% url 'login' %}">Sign in →</a></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'core/js/auth.js' %}"></script>
+<script src="{% static 'core/js/signup.js' %}"></script>
+{% endblock %}

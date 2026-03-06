@@ -202,3 +202,100 @@ def verify_email(request, token):
 
     messages.error(request, 'This verification link is invalid or has already been used. Please sign in.')
     return redirect('login')
+
+def google_login(request):
+    from django.conf import settings
+    import urllib.parse
+    if not settings.GOOGLE_OAUTH_CLIENT_ID:
+        messages.error(request,'Google login is not configured yet.'); return redirect('login')
+    params = {'client_id':settings.GOOGLE_OAUTH_CLIENT_ID,
+              'redirect_uri':settings.GOOGLE_OAUTH_REDIRECT_URI,
+              'response_type':'code','scope':'openid email profile',
+              'access_type':'offline','prompt':'select_account'}
+    return redirect('https://accounts.google.com/o/oauth2/v2/auth?'+urllib.parse.urlencode(params))
+
+
+def google_callback(request):
+    import urllib.request, urllib.parse
+    from django.conf import settings
+    code = request.GET.get('code')
+    if not code: messages.error(request,'Google login failed.'); return redirect('login')
+    try:
+        data = urllib.parse.urlencode({'code':code,'client_id':settings.GOOGLE_OAUTH_CLIENT_ID,
+            'client_secret':settings.GOOGLE_OAUTH_CLIENT_SECRET,
+            'redirect_uri':settings.GOOGLE_OAUTH_REDIRECT_URI,'grant_type':'authorization_code'}).encode()
+        req = urllib.request.Request('https://oauth2.googleapis.com/token',data=data,method='POST')
+        with urllib.request.urlopen(req, timeout=10) as resp: token_resp=json.loads(resp.read())
+        req2 = urllib.request.Request('https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization':f"Bearer {token_resp.get('access_token')}"})
+        with urllib.request.urlopen(req2, timeout=10) as resp2: info=json.loads(resp2.read())
+        gid=info.get('sub',''); email=info.get('email','')
+        fname=info.get('given_name',''); lname=info.get('family_name','')
+        # Find existing account by google_id first, then by email
+        profile = None
+        try:
+            profile = UserProfile.objects.get(google_id=gid)
+            user = profile.user
+        except UserProfile.DoesNotExist:
+            # Check if user already exists with this email (e.g. admin account)
+            try:
+                user = User.objects.get(email=email)
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+            except User.DoesNotExist:
+                # Brand new user
+                base = email.split('@')[0]
+                uname = base; n = 1
+                while User.objects.filter(username=uname).exists():
+                    uname = f"{base}{n}"; n += 1
+                user = User.objects.create_user(
+                    username=uname, email=email,
+                    first_name=fname, last_name=lname)
+                user.set_unusable_password(); user.save()
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+            # Link google_id and verify — but KEEP existing role/admin status
+            profile.google_id = gid
+            profile.is_verified = True
+            profile.save()
+
+        login(request, user)
+        LoginHistory.objects.create(user=user, login_status='success',
+            ip_address=_ip(request), user_agent=request.META.get('HTTP_USER_AGENT',''))
+        messages.success(request, f'Welcome, {fname or user.first_name or user.username}!')
+        return redirect('upload')
+    except Exception as e:
+        print(f"[Brainify] Google auth error: {e}")
+        messages.error(request, f'Google sign-in failed. Please try logging in with email and password instead.')
+        return redirect('login')
+
+
+def logout_view(request):
+    logout(request); return redirect('landing')
+
+@login_required
+def dashboard_view(request):
+    now = timezone.now()
+    my_scans = MRIScan.objects.filter(uploaded_by=request.user, is_deleted=False)
+    results  = SegmentationResult.objects.filter(scan__uploaded_by=request.user)
+    stats = {
+        'total':          my_scans.count(),
+        'completed':      my_scans.filter(status='completed').count(),
+        'tumors':         results.filter(tumor_detected=True).count(),
+        'avg_dice':       round(results.aggregate(v=Avg('dice_score'))['v'] or 0, 4),
+        'avg_confidence': round(results.aggregate(v=Avg('confidence_score'))['v'] or 0, 1),
+    }
+    days=[]; counts=[]
+    for i in range(13,-1,-1):
+        d=(now-timedelta(days=i)).date()
+        days.append(d.strftime('%b %d'))
+        counts.append(my_scans.filter(upload_date__date=d).count())
+    sev_data = list(results.values('severity').annotate(n=Count('id')).order_by('severity'))
+    login_history = LoginHistory.objects.filter(user=request.user)[:12]
+    recent = my_scans.select_related('result').order_by('-upload_date')[:6]
+    return render(request,'core/dashboard.html',{
+        'stats':stats, 'sev_data':sev_data,
+        'days_json':json.dumps(days), 'counts_json':json.dumps(counts),
+        'login_history':login_history, 'recent_scans':recent,
+        'total_login':LoginHistory.objects.filter(user=request.user).count(),
+        'success_login':LoginHistory.objects.filter(user=request.user,login_status='success').count(),
+    })
+

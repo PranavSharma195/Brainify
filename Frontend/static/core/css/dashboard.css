@@ -1,0 +1,67 @@
+/* ── KPI grid ── */
+.g4k{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kcard{position:relative;overflow:hidden;transition:all .2s}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0;opacity:0;transition:opacity .2s}
+.kcard:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.12)}
+[data-theme="light"] .kcard:hover{box-shadow:0 8px 28px rgba(22,56,216,.08)}
+.kcard:hover::before{opacity:1}
+.kcard:nth-child(1)::before{background:linear-gradient(90deg,#3B6EF0,#6090FF)}
+.kcard:nth-child(2)::before{background:linear-gradient(90deg,#EE5555,#F08080)}
+.kcard:nth-child(3)::before{background:linear-gradient(90deg,#1AD080,#40E8A0)}
+.kcard:nth-child(4)::before{background:linear-gradient(90deg,#9060EE,#B080FF)}
+
+/* ── Chart boxes ── */
+.chart-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;transition:all .2s}
+.chart-box:hover{border-color:var(--line2)}
+[data-theme="light"] .chart-box{box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.ct{font-size:14px;font-weight:700;color:var(--white);margin-bottom:2px}
+.cs{font-size:12px;color:var(--muted);margin-bottom:18px}
+
+/* ── Grid rows ── */
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-bottom:18px}
+
+/* ── List rows ── */
+.log-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line);transition:padding-left .15s}
+.log-row:last-child{border-bottom:none}
+.log-row:hover{padding-left:4px}
+.lb{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.lb-ok{background:rgba(34,197,94,.1);color:var(--green)}
+.lb-no{background:rgba(239,68,68,.1);color:var(--red)}
+.sc-row{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);transition:padding-left .15s}
+.sc-row:last-child{border-bottom:none}
+.sc-row:hover{padding-left:4px}
+
+/* ── Welcome banner ── */
+.welcome{
+  background:linear-gradient(135deg,rgba(59,110,240,.1) 0%,rgba(26,208,128,.06) 50%,rgba(144,96,238,.06) 100%);
+  border:1px solid rgba(107,159,255,.18);border-radius:var(--r);
+  padding:28px 30px;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  position:relative;overflow:hidden;
+}
+[data-theme="light"] .welcome{
+  background:linear-gradient(135deg,rgba(59,110,240,.06) 0%,rgba(26,208,128,.04) 50%,rgba(144,96,238,.04) 100%);
+  border-color:rgba(59,110,240,.15);
+}
+.welcome::before{
+  content:'';position:absolute;right:-40px;top:-60px;width:260px;height:260px;
+  border-radius:50%;background:radial-gradient(circle,rgba(59,110,240,.08),transparent 70%);
+  pointer-events:none;animation:welcomePulse 6s ease-in-out infinite alternate;
+}
+.welcome::after{
+  content:'';position:absolute;left:30%;bottom:-40px;width:180px;height:180px;
+  border-radius:50%;background:radial-gradient(circle,rgba(26,208,128,.06),transparent 70%);
+  pointer-events:none;animation:welcomePulse 6s ease-in-out 3s infinite alternate;
+}
+@keyframes welcomePulse{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.15);opacity:.9}}
+
+/* ── Section heading ── */
+.sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.sec-head .ct{margin-bottom:0}
+.sec-head .cs{margin-bottom:0;margin-top:2px}
+
+/* ── Scan icon box ── */
+.sc-ico{width:38px;height:38px;border-radius:10px;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.sc-row:hover .sc-ico{border-color:var(--line2)}
+
+@media(max-width:1100px){.g4k{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}

@@ -1,0 +1,134 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Dashboard — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">{% endblock %}
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='dash' %}
+  <main class="main">
+    <div class="wrap">
+
+      <div class="welcome">
+        <div style="position:relative;z-index:1">
+          <div style="font-size:24px;font-weight:800;color:var(--white);margin-bottom:6px;letter-spacing:-.4px">
+            Welcome back, {{ user.first_name|default:user.username }} 👋
+          </div>
+          <div style="font-size:13.5px;color:var(--soft);line-height:1.6;max-width:480px">
+            {% if stats.total == 0 %}
+              No scans uploaded yet. Start your first MRI analysis below.
+            {% else %}
+              {{ stats.completed }} of {{ stats.total }} scan{{ stats.total|pluralize }} complete.
+              {% if stats.tumors %}{{ stats.tumors }} tumour{{ stats.tumors|pluralize }} detected across all results.{% else %}All results clear — great work!{% endif %}
+            {% endif %}
+          </div>
+        </div>
+        <a href="{% url 'upload' %}" class="btn btn-blue btn-lg" style="flex-shrink:0;position:relative;z-index:1">
+          <span class="material-symbols-rounded">cloud_upload</span>New Scan
+        </a>
+      </div>
+
+      <div class="g4k">
+        <div class="kcard">
+          <div class="kcard-icon" style="background:rgba(108,142,245,.12)">
+            <span class="material-symbols-rounded" style="color:var(--blue)">image</span>
+          </div>
+          <div class="kcard-label">Total Scans</div>
+          <div class="kcard-val">{{ stats.total }}</div>
+          <div class="kcard-sub">{{ stats.completed }} completed</div>
+        </div>
+        <div class="kcard">
+          <div class="kcard-icon" style="background:rgba(239,68,68,.1)">
+            <span class="material-symbols-rounded" style="color:var(--red)">emergency</span>
+          </div>
+          <div class="kcard-label">Tumours Found</div>
+          <div class="kcard-val" style="color:var(--red)">{{ stats.tumors }}</div>
+          <div class="kcard-sub">Across all scans</div>
+        </div>
+        <div class="kcard">
+          <div class="kcard-icon" style="background:rgba(34,197,94,.1)">
+            <span class="material-symbols-rounded" style="color:var(--green)">analytics</span>
+          </div>
+          <div class="kcard-label">Avg Dice Score</div>
+          <div class="kcard-val" style="color:var(--green);font-size:26px">{{ stats.avg_dice }}</div>
+          <div class="kcard-sub">Segmentation quality</div>
+        </div>
+        <div class="kcard">
+          <div class="kcard-icon" style="background:rgba(167,139,250,.1)">
+            <span class="material-symbols-rounded" style="color:var(--purple)">login</span>
+          </div>
+          <div class="kcard-label">Total Logins</div>
+          <div class="kcard-val" style="color:var(--purple)">{{ total_login }}</div>
+          <div class="kcard-sub">{{ success_login }} successful</div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="chart-box">
+          <div class="ct">My Scan Activity</div>
+          <div class="cs">Daily uploads — last 14 days</div>
+          <canvas id="act" height="130"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="ct">Severity Breakdown</div>
+          <div class="cs">Distribution of all results</div>
+          {% if sev_data %}
+          <div style="max-width:170px;margin:0 auto"><canvas id="sev" height="150"></canvas></div>
+          {% else %}
+          <div class="empty" style="padding:28px 0"><span class="material-symbols-rounded" style="font-size:36px">pie_chart</span><div style="font-size:13px">No results yet</div></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px">
+        <div class="chart-box">
+          <div class="sec-head">
+            <div><div class="ct">Recent Scans</div><div class="cs" style="margin:0">Your latest uploaded files</div></div>
+            <a href="{% url 'cases' %}" class="btn btn-ghost btn-sm">View all</a>
+          </div>
+          {% for scan in recent_scans %}
+          <div class="sc-row">
+            <div class="sc-ico">
+              <span class="material-symbols-rounded" style="font-size:17px;color:{% if scan.status == 'completed' %}var(--green){% elif scan.status == 'failed' %}var(--red){% else %}var(--dim){% endif %};font-variation-settings:'FILL' 1">
+                {% if scan.status == 'completed' %}check_circle{% elif scan.status == 'failed' %}error{% else %}schedule{% endif %}
+              </span>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:var(--white)" class="cut">{{ scan.patient_name }}</div>
+              <div style="font-size:11px;color:var(--muted)">{{ scan.upload_date|date:"M d, Y · H:i" }} {% if scan.result %}· {% if scan.result.tumor_detected %}<span style="color:var(--red);font-weight:700">Tumor</span>{% else %}<span style="color:var(--green)">Clear</span>{% endif %}{% endif %}</div>
+            </div>
+            {% if scan.status == 'completed' %}<a href="{% url 'analysis' scan.id %}" class="btn btn-ghost btn-icon btn-sm"><span class="material-symbols-rounded">open_in_new</span></a>{% endif %}
+          </div>
+          {% empty %}
+          <div class="empty" style="padding:32px 0"><span class="material-symbols-rounded">image_search</span><div style="font-size:13px">No scans yet — <a href="{% url 'upload' %}">upload your first</a></div></div>
+          {% endfor %}
+        </div>
+
+        <div class="chart-box">
+          <div style="margin-bottom:16px"><div class="ct">Login History</div><div class="cs" style="margin:0">Your recent sign-in activity</div></div>
+          {% for log in login_history %}
+          <div class="log-row">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12.5px;color:var(--text);font-weight:500">{{ log.login_time|date:"M d, Y · H:i" }}</div>
+              <div style="font-size:11px;color:var(--muted)" class="cut">{{ log.ip_address|default:"—" }}</div>
+            </div>
+            {% if log.login_status == 'success' %}<span class="lb lb-ok">✓ OK</span>{% else %}<span class="lb lb-no">✗ Failed</span>{% endif %}
+          </div>
+          {% empty %}
+          <div class="empty" style="padding:32px 0"><span class="material-symbols-rounded">lock_clock</span><div style="font-size:13px">No login history yet</div></div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+window.__bfy_days={{ days_json|safe }};
+window.__bfy_counts={{ counts_json|safe }};
+window.__bfy_sev={{ sev_data|safe }};
+</script>
+<script src="{% static 'core/js/dashboard.js' %}"></script>
+{% endblock %}

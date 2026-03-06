@@ -1,0 +1,60 @@
+/* Full height, no bottom gap */
+.shell{height:100vh;overflow:hidden}
+.main{overflow:hidden!important;display:flex!important;flex-direction:column!important;height:100vh}
+.upload-wrap{display:grid;grid-template-columns:1fr 260px;gap:16px;padding:16px 20px;flex:1;min-height:0;overflow:hidden}
+.upload-main{display:flex;flex-direction:column;gap:14px;height:100%;overflow:hidden}
+.upload-side{display:flex;flex-direction:column;gap:12px;overflow-y:auto;height:100%}
+/* Page header - compact */
+.ph2{display:flex;align-items:center;justify-content:space-between;margin-bottom:0;flex-shrink:0}
+.ph2-title{font-size:16px;font-weight:800;color:var(--white);letter-spacing:-.4px}
+[data-theme="light"] .ph2-title{color:var(--white)}
+.ph2-sub{font-size:12px;color:var(--muted);margin-top:1px}
+/* Dropbox */
+.dropbox{border:2px dashed var(--line2);border-radius:12px;padding:52px 24px;text-align:center;cursor:pointer;transition:all .25s;background:var(--card);position:relative;overflow:hidden}
+.dropbox::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(44,110,224,.05) 0%,transparent 65%);pointer-events:none;transition:opacity .25s;opacity:0}
+.dropbox:hover::before,.dropbox.over::before{opacity:1}
+.dropbox:hover,.dropbox.over{border-color:var(--blue);background:var(--card2);transform:scale(1.005)}
+.dropbox.got{border-color:var(--green,#1AD080);border-style:solid;background:rgba(26,208,128,.03)}
+.db-icon{font-size:40px;color:var(--muted);display:block;margin-bottom:10px;transition:color .2s;font-variation-settings:'FILL' 0}
+.dropbox:hover .db-icon,.dropbox.over .db-icon{color:var(--blue)}
+.dropbox.got .db-icon{color:var(--green,#1AD080);font-variation-settings:'FILL' 1}
+.db-title{font-size:15px;font-weight:700;color:var(--white);margin-bottom:4px}
+.db-sub{font-size:12.5px;color:var(--muted)}
+.browse{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 18px;background:var(--card2);border:1px solid var(--line2);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font,'Inter',system-ui)}
+.browse:hover{border-color:var(--blue);color:var(--blue)}
+.file-info{display:none;margin-top:10px;padding:8px 14px;background:rgba(26,208,128,.07);border:1px solid rgba(26,208,128,.2);border-radius:8px;font-size:12.5px;color:var(--green,#1AD080);font-weight:600;align-items:center;gap:7px;justify-content:center}
+.file-info.show{display:flex}
+/* Form grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* Clinical notes - stretches to fill card */
+.notes-full{width:100%;flex:1;display:flex;flex-direction:column;min-height:0}
+.notes-full textarea.fi{flex:1;min-height:0;resize:none;line-height:1.7;font-size:13.5px}
+/* Overlay */
+.ov{position:fixed;inset:0;background:rgba(8,9,15,.95);backdrop-filter:blur(16px);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+.ov.on{display:flex}
+.spin{width:60px;height:60px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--blue);animation:sp .75s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ov-h{font-size:20px;font-weight:800;color:var(--white);letter-spacing:-.4px}
+.ov-s{font-size:13px;color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:10px;min-width:260px}
+.step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);transition:color .3s}
+.step.go{color:var(--white);font-weight:600}
+.step.done{color:var(--green,#1AD080)}
+.sd{width:8px;height:8px;border-radius:50%;border:2px solid currentColor;flex-shrink:0;transition:all .3s}
+.step.go .sd{background:var(--blue);border-color:var(--blue)}
+.step.done .sd{background:var(--green,#1AD080);border-color:var(--green,#1AD080)}
+.scan-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.scan-row:last-child{border-bottom:none}
+/* Icon-in-input */
+.fi-wrap{position:relative;display:flex;align-items:center}
+.fi-ico{position:absolute;left:10px;display:flex;align-items:center;pointer-events:none;z-index:1}
+.fi-ico .material-symbols-rounded{font-size:16px;color:var(--muted);font-variation-settings:'FILL' 1}
+.fi-wrap .fi{padding-left:34px}
+/* Icon-in-select */
+.fs-wrap{position:relative;display:flex;align-items:center}
+.fs-ico{position:absolute;left:10px;display:flex;align-items:center;pointer-events:none;z-index:1}
+.fs-ico .material-symbols-rounded{font-size:16px;color:var(--muted);font-variation-settings:'FILL' 1}
+.fs-wrap .fs{padding-left:34px;width:100%}
+/* Patient card fills 2x more than dropzone */
+.patient-card{flex:2;display:flex;flex-direction:column;min-height:0}
+.patient-card>.fg,.patient-card .g2{flex-shrink:0}

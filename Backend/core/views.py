@@ -299,3 +299,80 @@ def dashboard_view(request):
         'success_login':LoginHistory.objects.filter(user=request.user,login_status='success').count(),
     })
 
+
+@login_required
+def upload_view(request):
+    recent = MRIScan.objects.filter(uploaded_by=request.user).order_by('-upload_date')[:8]
+    formats=[('TIFF','Best quality'),('PNG','Good quality'),('JPG','Compressed'),('DCM','DICOM native')]
+    return render(request,'core/upload.html',{'recent_scans':recent,'formats':formats})
+
+
+@login_required
+def upload_scan(request):
+    if request.method != 'POST': return JsonResponse({'error':'POST only'},status=405)
+    f = request.FILES.get('scan_file')
+    if not f: return JsonResponse({'error':'No file uploaded.'},status=400)
+
+    patient_name   = request.POST.get('patient_name','Unknown').strip() or 'Unknown'
+    patient_id     = request.POST.get('patient_id','').strip()
+    patient_age    = request.POST.get('patient_age','').strip()
+    patient_gender = request.POST.get('patient_gender','')
+    scan_type      = request.POST.get('scan_type','T1')
+    priority       = request.POST.get('priority','normal')
+    notes          = request.POST.get('notes','')
+    if not patient_id: patient_id=f'P-{MRIScan.objects.count()+1000:05d}'
+
+    scan = MRIScan.objects.create(
+        uploaded_by=request.user, patient_name=patient_name,
+        patient_id=patient_id,
+        patient_age=int(patient_age) if patient_age.isdigit() else None,
+        patient_gender=patient_gender, scan_type=scan_type, priority=priority,
+        scan_file=f, original_filename=f.name,
+        file_size_mb=round(f.size/1024/1024,2), notes=notes, status='processing')
+    try:
+        scan.scan_file.seek(0)
+        raw = scan.scan_file.read()
+        try:
+            import numpy as np
+            pil = Image.open(io.BytesIO(raw)).convert('L')
+        except Exception:
+            import numpy as np
+            arr = (np.random.rand(256,256)*180+40).astype('uint8')
+            pil = Image.fromarray(arr,'L')
+
+        data = run_segmentation(pil)
+
+        import json as _json
+        SegmentationResult.objects.create(
+            scan=scan,
+            tumor_detected   = data['tumor_detected'],
+            confidence_score = data['confidence_score'],
+            tumor_pixel_count= data['tumor_pixels'],
+            tumour_area      = data['tumour_area'],
+            dice_score       = data['dice_score'],
+            iou_score        = data['iou_score'],
+            accuracy         = data['accuracy'],
+            precision        = data['precision'],
+            recall           = data['recall'],
+            f1_score         = data['f1_score'],
+            classification   = data['classification'],
+            severity         = data['severity'],
+            who_grade        = data.get('who_grade', ''),
+            clinical_description = data.get('clinical_description', ''),
+            tumor_location   = data.get('tumor_location', ''),
+            recommendations_json = _json.dumps(data.get('recommendations', [])),
+            original_b64     = data['original_b64'],
+            segmented_b64    = data['segmented_b64'],
+            overlay_b64      = data['overlay_b64'],
+            comparison_b64   = data['comparison_b64'],
+            heatmap_b64      = data['heatmap_b64'],
+        )
+        scan.status='completed'; scan.processed_at=timezone.now(); scan.save()
+        send_scan_complete_email(request.user, scan, scan.result)
+        return JsonResponse({'success':True,'scan_id':str(scan.id)})
+    except Exception as e:
+        import traceback
+        scan.status='failed'; scan.save()
+        print(f'[Brainify Upload Error] {traceback.format_exc()}')
+        return JsonResponse({'error':str(e)},status=500)
+

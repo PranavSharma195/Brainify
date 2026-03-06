@@ -1,0 +1,82 @@
+from django.conf import settings
+from django.db import migrations, models
+import django.db.models.deletion, uuid
+
+class Migration(migrations.Migration):
+    initial = True
+    dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
+    operations = [
+        migrations.CreateModel(name='UserProfile',fields=[
+            ('id',models.BigAutoField(auto_created=True,primary_key=True,serialize=False)),
+            ('role',models.CharField(choices=[('radiologist','Radiologist'),('neurologist','Neurologist'),('technician','Technician'),('admin','Admin'),('researcher','Researcher')],default='radiologist',max_length=20)),
+            ('is_verified',models.BooleanField(default=False)),
+            ('email_token',models.CharField(blank=True,max_length=64)),
+            ('google_id',models.CharField(blank=True,max_length=128)),('avatar_b64',models.TextField(blank=True)),
+            ('user',models.OneToOneField(on_delete=django.db.models.deletion.CASCADE,related_name='profile',to=settings.AUTH_USER_MODEL)),
+        ]),
+        migrations.CreateModel(name='LoginHistory',fields=[
+            ('id',models.BigAutoField(auto_created=True,primary_key=True,serialize=False)),
+            ('login_time',models.DateTimeField(auto_now_add=True)),
+            ('login_status',models.CharField(choices=[('success','Success'),('failed','Failed')],default='success',max_length=10)),
+            ('ip_address',models.GenericIPAddressField(blank=True,null=True)),
+            ('user_agent',models.TextField(blank=True)),
+            ('user',models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,related_name='login_history',to=settings.AUTH_USER_MODEL)),
+        ],options={'ordering':['-login_time'],'verbose_name_plural':'Login Histories'}),
+        migrations.CreateModel(name='MRIScan',fields=[
+            ('id',models.UUIDField(default=uuid.uuid4,editable=False,primary_key=True,serialize=False)),
+            ('patient_name',models.CharField(default='Unknown',max_length=100)),
+            ('patient_id',models.CharField(default='P-00000',max_length=50)),
+            ('patient_age',models.IntegerField(blank=True,null=True)),
+            ('patient_gender',models.CharField(blank=True,max_length=10)),
+            ('scan_type',models.CharField(choices=[('T1','T1-Weighted'),('T2','T2-Weighted'),('FLAIR','FLAIR'),('DWI','DWI'),('OTHER','Other')],default='T1',max_length=10)),
+            ('priority',models.CharField(choices=[('normal','Normal'),('high','High'),('urgent','Urgent')],default='normal',max_length=10)),
+            ('scan_file',models.FileField(upload_to='uploads/%Y/%m/')),
+            ('original_filename',models.CharField(max_length=255)),
+            ('file_size_mb',models.FloatField(default=0)),
+            ('status',models.CharField(choices=[('pending','Pending'),('processing','Processing'),('completed','Completed'),('failed','Failed')],default='pending',max_length=20)),
+            ('notes',models.TextField(blank=True)),
+            ('upload_date',models.DateTimeField(auto_now_add=True)),
+            ('processed_at',models.DateTimeField(blank=True,null=True)),
+            ('uploaded_by',models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,related_name='scans',to=settings.AUTH_USER_MODEL)),
+        ],options={'ordering':['-upload_date']}),
+        migrations.CreateModel(name='SegmentationResult',fields=[
+            ('id',models.BigAutoField(auto_created=True,primary_key=True,serialize=False)),
+            ('tumor_detected',models.BooleanField(default=False)),
+            ('tumour_area',models.FloatField(default=0)),
+            ('tumor_pixel_count',models.IntegerField(default=0)),
+            ('confidence_score',models.FloatField(default=0)),
+            ('classification',models.CharField(blank=True,max_length=200)),
+            ('severity',models.CharField(choices=[('normal','Normal'),('mild','Mild'),('moderate','Moderate'),('severe','Severe'),('critical','Critical')],default='normal',max_length=20)),
+            ('dice_score',models.FloatField(default=0)),
+            ('iou_score',models.FloatField(default=0)),
+            ('accuracy',models.FloatField(default=0)),
+            ('precision',models.FloatField(default=0)),
+            ('recall',models.FloatField(default=0)),
+            ('f1_score',models.FloatField(default=0)),
+            ('original_b64',models.TextField(blank=True)),
+            ('segmented_b64',models.TextField(blank=True)),
+            ('overlay_b64',models.TextField(blank=True)),
+            ('comparison_b64',models.TextField(blank=True)),
+            ('heatmap_b64',models.TextField(blank=True)),
+            ('radiologist_notes',models.TextField(blank=True)),
+            ('created_at',models.DateTimeField(auto_now_add=True)),
+            ('scan',models.OneToOneField(on_delete=django.db.models.deletion.CASCADE,related_name='result',to='core.mriscan')),
+        ]),
+        migrations.CreateModel(name='Report',fields=[
+            ('id',models.BigAutoField(auto_created=True,primary_key=True,serialize=False)),
+            ('generated_at',models.DateTimeField(auto_now_add=True)),
+            ('download_count',models.IntegerField(default=0)),
+            ('result',models.OneToOneField(on_delete=django.db.models.deletion.CASCADE,related_name='report',to='core.segmentationresult')),
+            ('user',models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,related_name='reports',to=settings.AUTH_USER_MODEL)),
+        ]),
+        migrations.CreateModel(name='SystemStats',fields=[
+            ('id',models.BigAutoField(auto_created=True,primary_key=True,serialize=False)),
+            ('date',models.DateField(unique=True)),
+            ('total_users',models.IntegerField(default=0)),
+            ('total_scans',models.IntegerField(default=0)),
+            ('total_reports',models.IntegerField(default=0)),
+            ('tumors_found',models.IntegerField(default=0)),
+            ('avg_dice',models.FloatField(default=0)),
+            ('avg_iou',models.FloatField(default=0)),
+        ],options={'ordering':['-date'],'verbose_name_plural':'System Stats'}),
+    ]

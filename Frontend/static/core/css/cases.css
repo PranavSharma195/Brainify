@@ -1,0 +1,36 @@
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:220px}
+.search-wrap .material-symbols-rounded{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:18px;pointer-events:none;transition:color .2s}
+.search-wrap:focus-within .material-symbols-rounded{color:var(--blue)}
+.search-inp{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 14px 10px 40px;color:var(--white);font-family:var(--font);font-size:14px;outline:none;transition:all .18s}
+.search-inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--as)}
+.search-inp::placeholder{color:var(--dim)}
+
+/* ── Case cards ── */
+.scard{display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;transition:all .2s;text-decoration:none;margin-bottom:10px;position:relative;overflow:hidden}
+.scard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;opacity:0;transition:opacity .2s}
+.scard:hover{border-color:var(--line2);transform:translateX(4px);box-shadow:0 4px 20px rgba(0,0,0,.1)}
+[data-theme="light"] .scard:hover{box-shadow:0 4px 20px rgba(22,56,216,.06)}
+.scard:hover::before{opacity:1}
+/* Color by status */
+.scard[data-status="completed"]::before{background:var(--green)}
+.scard[data-status="failed"]::before{background:var(--red)}
+.scard[data-status="processing"]::before{background:var(--amber)}
+
+.scard-thumb{width:48px;height:48px;border-radius:11px;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.scard:hover .scard-thumb{border-color:var(--line2)}
+.scard-thumb .material-symbols-rounded{font-size:22px;font-variation-settings:'FILL' 1}
+
+/* ── Page header with gradient ── */
+.ph{position:relative}
+.ph::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+
+/* ── Result count badge ── */
+.result-count{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--as);color:var(--blue);border:1px solid var(--al)}
+
+/* ── Improved empty state ── */
+.empty-state{margin-top:60px;text-align:center;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.empty-state .material-symbols-rounded{font-size:52px;color:var(--line2);display:block;margin-bottom:12px}
+.empty-state h3{font-size:18px;color:var(--white);margin-bottom:8px}
+.empty-state p{font-size:13.5px;margin-bottom:20px;color:var(--muted)}

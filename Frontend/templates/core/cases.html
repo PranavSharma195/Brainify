@@ -1,0 +1,79 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}My Cases — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/cases.css' %}">{% endblock %}
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='cases' %}
+  <main class="main">
+    <div class="wrap">
+      <div class="ph">
+        <div>
+          <h1 class="ph-title">My Cases</h1>
+          <p class="ph-sub">Browse and search all your MRI scan results</p>
+        </div>
+        <div class="ph-right">
+          <a href="{% url 'upload' %}" class="btn btn-blue btn-sm"><span class="material-symbols-rounded">add</span>New Scan</a>
+        </div>
+      </div>
+
+      <form method="get" class="filter-bar">
+        <div class="search-wrap">
+          <span class="material-symbols-rounded">search</span>
+          <input type="text" name="q" value="{{ query }}" class="search-inp" placeholder="Search by patient name or ID…">
+        </div>
+        <select name="status" class="fs" style="width:auto;min-width:150px" onchange="this.form.submit()">
+          <option value="">All Status</option>
+          <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+          <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+        </select>
+        <button type="submit" class="btn btn-ghost btn-sm"><span class="material-symbols-rounded">search</span>Search</button>
+        {% if query or status_filter %}<a href="{% url 'cases' %}" class="btn btn-ghost btn-sm"><span class="material-symbols-rounded">close</span>Clear</a>{% endif %}
+      </form>
+
+      {% for scan in scans %}
+      <div class="scard-wrap" style="display:flex;align-items:center;gap:10px;">
+        <a href="{% if scan.status == 'completed' %}{% url 'analysis' scan.id %}{% else %}#{% endif %}" class="scard" data-status="{{ scan.status }}" style="flex:1;">
+        <div class="scard-thumb">
+          <span class="material-symbols-rounded" style="color:{% if scan.status == 'completed' %}var(--green){% elif scan.status == 'failed' %}var(--red){% else %}var(--dim){% endif %}">
+            {% if scan.status == 'completed' %}check_circle{% elif scan.status == 'failed' %}error{% else %}schedule{% endif %}
+          </span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
+            <span style="font-size:15px;font-weight:700;color:var(--white)" class="cut">{{ scan.patient_name }}</span>
+            <span class="mono t-dim" style="font-size:11px">{{ scan.patient_id }}</span>
+            {% if scan.priority == 'urgent' %}<span class="badge b-red">Urgent</span>{% elif scan.priority == 'high' %}<span class="badge b-amber">High</span>{% endif %}
+          </div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap">
+            <span>{{ scan.upload_date|date:"M d, Y · H:i" }}</span>
+            <span>{{ scan.scan_type }}</span>
+            <span>{{ scan.file_size_mb }} MB</span>
+            {% if scan.result %}<span style="color:{% if scan.result.tumor_detected %}var(--red){% else %}var(--green){% endif %};font-weight:700">{% if scan.result.tumor_detected %}⚠ Tumor detected{% else %}✓ Clear{% endif %}</span>{% endif %}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge {% if scan.status == 'completed' %}b-green{% elif scan.status == 'failed' %}b-red{% else %}b-slate{% endif %}">{{ scan.status|capfirst }}</span>
+          {% if scan.status == 'completed' %}<div style="margin-top:6px"><span class="material-symbols-rounded" style="font-size:16px;color:var(--dim)">arrow_forward</span></div>{% endif %}
+        </div>
+        </a>
+        <form method="post" action="{% url 'delete_scan' scan.id %}" style="margin:0;display:flex;align-items:center;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-red" style="font-size:16px;padding:10px 22px;display:flex;align-items:center;gap:8px;font-weight:600;border-radius:8px;box-shadow:0 2px 8px rgba(240,104,104,0.08)" onclick="return confirm('Are you sure you want to delete this scan? It will be moved to admin backup and not visible to you.')">
+            <span class="material-symbols-rounded" style="font-size:22px;">delete</span> Delete
+          </button>
+        </form>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <span class="material-symbols-rounded">folder_open</span>
+        <h3>{% if query %}No results found{% else %}No scans yet{% endif %}</h3>
+        <p>{% if query %}No results for "{{ query }}" — try a different search{% else %}Upload your first MRI scan to get started with AI analysis{% endif %}</p>
+        <a href="{% url 'upload' %}" class="btn btn-blue"><span class="material-symbols-rounded">cloud_upload</span>Upload MRI</a>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+{% endblock %}

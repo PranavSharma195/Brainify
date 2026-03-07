@@ -394,4 +394,36 @@ def analysis_view(request, scan_id):
             _,_,_,_,_,recs = classify_tumor(result.tumour_area, result.confidence_score, result.tumor_detected)
     return render(request,'core/analysis.html',{'scan':scan,'result':result,'recommendations':recs})
 
+@login_required
+@require_POST
+def save_notes(request, scan_id):
+    scan = get_object_or_404(MRIScan, id=scan_id)
+    result = getattr(scan,'result',None)
+    if not result: return JsonResponse({'error':'No result'},status=404)
+    data = json.loads(request.body)
+    result.radiologist_notes = data.get('notes',''); result.save()
+    return JsonResponse({'success':True})
+
+
+@login_required
+def download_report(request, scan_id):
+    scan = get_object_or_404(MRIScan, id=scan_id)
+    result = getattr(scan,'result',None)
+    pdf = generate_pdf_report(scan, result, request.user)
+    rep,_=Report.objects.get_or_create(result=result, defaults={'user':request.user})
+    rep.download_count+=1; rep.save()
+    safe = scan.patient_name.replace(' ','_')
+    resp = HttpResponse(pdf,content_type='application/pdf')
+    resp['Content-Disposition'] = f'attachment; filename="Brainify_{safe}_{str(scan.id)[:8]}.pdf"'
+    return resp
+
+
+@login_required
+def cases_list(request):
+    q=request.GET.get('q',''); status=request.GET.get('status','')
+    qs=MRIScan.objects.filter(uploaded_by=request.user, is_deleted=False).select_related('result')
+    if q: qs=qs.filter(Q(patient_name__icontains=q)|Q(patient_id__icontains=q))
+    if status: qs=qs.filter(status=status)
+    return render(request,'core/cases.html',{'scans':qs.order_by('-upload_date'),'query':q,'status_filter':status})
+
 

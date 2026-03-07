@@ -375,4 +375,23 @@ def upload_scan(request):
         scan.status='failed'; scan.save()
         print(f'[Brainify Upload Error] {traceback.format_exc()}')
         return JsonResponse({'error':str(e)},status=500)
+    
+@login_required
+def analysis_view(request, scan_id):
+    scan = get_object_or_404(MRIScan, id=scan_id)
+    if scan.uploaded_by != request.user and not request.user.is_staff: return redirect('cases')
+    result = getattr(scan,'result',None)
+    recs = []
+    if result:
+        # Load stored recommendations (computed at upload time with real model output)
+        if result.recommendations_json:
+            try:
+                recs = json.loads(result.recommendations_json)
+            except (json.JSONDecodeError, TypeError):
+                recs = []
+        # Fallback for older scans that don't have stored recommendations
+        if not recs:
+            _,_,_,_,_,recs = classify_tumor(result.tumour_area, result.confidence_score, result.tumor_detected)
+    return render(request,'core/analysis.html',{'scan':scan,'result':result,'recommendations':recs})
+
 

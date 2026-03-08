@@ -1,0 +1,148 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Brainify News{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/news.css' %}">{% endblock %}
+
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='news' %}
+  <main class="main">
+    <div class="wrap">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h1 class="ph-title">Brainify News</h1>
+          <p class="ph-sub">Live medical news &amp; research — auto-refreshes every 90 seconds</p>
+        </div>
+        <div class="live-pill"><div class="lp-dot"></div><span class="lp-txt">Live</span></div>
+      </div>
+
+      <div class="news-layout">
+        <div>
+          <div class="status-bar">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+              <div class="lp-dot"></div>
+              <span style="font-size:12.5px;font-weight:500;color:var(--text)" id="last-upd">Loading news...</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12px;background:var(--card2);border:1px solid var(--line);padding:5px 12px;border-radius:8px">
+                <span class="material-symbols-rounded" style="font-size:15px;color:#3ecf6e">timer</span>
+                <span style="color:var(--muted);font-weight:500">Next in</span>
+                <span id="countdown" style="font-weight:800;color:#3ecf6e;font-size:13px;min-width:28px;text-align:right">1:30</span>
+              </div>
+              <button class="rbtn" id="rbtn" onclick="manualRefresh()">
+                <span class="material-symbols-rounded">refresh</span>Refresh Now
+              </button>
+            </div>
+          </div>
+
+          <div class="fp-row">
+            <button class="fp on" onclick="setFilter('all',this)">All</button>
+            <button class="fp" onclick="setFilter('research',this)">Research</button>
+            <button class="fp" onclick="setFilter('treatment',this)">Treatment</button>
+            <button class="fp" onclick="setFilter('diagnosis',this)">Diagnosis</button>
+            <button class="fp" onclick="setFilter('tumor',this)">Tumor</button>
+            <button class="fp" onclick="setFilter('stroke',this)">Stroke &amp; Vascular</button>
+            <button class="fp" onclick="setFilter('clinical',this)">Clinical Trials</button>
+          </div>
+
+          <div id="feed">
+            <div class="feed-load"><div class="spin"></div><div style="font-size:13px">Loading articles...</div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="w">
+            <div class="wt"><span class="material-symbols-rounded">notifications</span>Notifications</div>
+            <div class="sw-row">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--white)">Live Popups</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px" id="tog-sub">
+                  {% if notifications_on %}On — popup on new article{% else %}Off{% endif %}
+                </div>
+              </div>
+              <label class="tog">
+                <input type="checkbox" id="notifToggle" {% if notifications_on %}checked{% endif %} onchange="toggleNotif(this)">
+                <div class="tog-track"></div>
+                <div class="tog-thumb"></div>
+              </label>
+            </div>
+            <p style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.6">
+              A popup appears every time a new article is found from any source.
+            </p>
+          </div>
+
+          <div class="w">
+            <div class="wt"><span class="material-symbols-rounded">bar_chart</span>Feed Stats</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+              <div style="background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:24px;font-weight:800;color:var(--white)" id="stat-total">—</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600">Articles</div>
+              </div>
+              <div style="background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:24px;font-weight:800;color:#3ecf6e" id="stat-new">0</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600">New Today</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="w">
+            <div class="wt"><span class="material-symbols-rounded">public</span>Live Sources</div>
+            <div class="src-row">
+              <span style="color:#6c8ef5;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px"><span class="material-symbols-rounded" style="font-size:13px">forum</span>Community Discussions</span>
+              <span class="src-n" id="src-reddit">—</span>
+            </div>
+            <div class="src-row">
+              <span style="color:#6c8ef5;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px"><span class="material-symbols-rounded" style="font-size:13px">biotech</span>Research Papers</span>
+              <span class="src-n" id="src-pubmed">—</span>
+            </div>
+            <div class="src-row">
+              <span style="color:#6c8ef5;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px"><span class="material-symbols-rounded" style="font-size:13px">newspaper</span>Medical News</span>
+              <span class="src-n" id="src-gnews">—</span>
+            </div>
+            <div class="src-row">
+              <span style="color:#6c8ef5;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px"><span class="material-symbols-rounded" style="font-size:13px">science</span>Science Reports</span>
+              <span class="src-n" id="src-science">—</span>
+            </div>
+            <div class="src-row">
+              <span style="color:#6c8ef5;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px"><span class="material-symbols-rounded" style="font-size:13px">vaccines</span>Clinical Trials</span>
+              <span class="src-n" id="src-trials">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="cd-backdrop" id="cdBack" onclick="closeComments()"></div>
+<div class="cd-panel" id="cdPanel">
+  <div class="cd-head">
+    <button class="cd-close" onclick="closeComments()"><span class="material-symbols-rounded">close</span></button>
+    <div style="font-size:11px;font-weight:700;color:#6c8ef5;margin-bottom:6px" id="cd-sub"></div>
+    <div style="font-size:15px;font-weight:700;color:var(--white);line-height:1.4;padding-right:40px" id="cd-title"></div>
+  </div>
+  <div class="cd-body" id="cd-body"></div>
+</div>
+
+<div class="nt" id="nt" onclick="scrollToNew()">
+  <div class="nt-ico" id="nt-ico"><span class="material-symbols-rounded">neurology</span></div>
+  <div style="flex:1;min-width:0">
+    <div class="nt-src" id="nt-src-label">
+      <div class="lp-dot" style="width:6px;height:6px"></div>New Article
+    </div>
+    <div class="nt-ttl" id="nt-title"></div>
+    <div class="nt-bdy" id="nt-body"></div>
+  </div>
+  <button class="nt-x" onclick="event.stopPropagation();hideToast()"><span class="material-symbols-rounded">close</span></button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.__bfy_notif_on={{ notifications_on|yesno:'true,false' }};
+window.__bfy_toggle_notif_url='{% url "toggle_notifications" %}';
+window.__bfy_csrf='{{ csrf_token }}';
+</script>
+<script src="{% static 'core/js/news.js' %}"></script>
+{% endblock %}
+

@@ -474,3 +474,197 @@ def profile_view(request):
     ROLES=[('radiologist','Radiologist'),('neurologist','Neurologist'),
            ('technician','Technician'),('researcher','Researcher'),('admin','Admin')]
     return render(request,'core/profile.html',{'profile':profile,'history':history,'stats':stats,'roles':ROLES})
+
+
+
+@login_required
+def news_feed_api(request):
+    import requests as req
+    import time
+    import xml.etree.ElementTree as ET
+    import hashlib
+
+    now = int(time.time())
+
+    REDDIT_SUBS = [
+        'braintumor','glioblastoma','braincancer','neuro_oncology',
+        'neurology','oncology','medicalscience','neuroscience',
+        'askdocs','medicine','healthcareworkers',
+    ]
+
+    # Expanded — covers ALL brain abnormalities not just tumors
+    KEYWORDS = [
+        # Tumors
+        'brain tumor','brain tumour','glioblastoma','glioma','meningioma',
+        'astrocytoma','medulloblastoma','gbm','craniotomy','brain cancer',
+        'brain metastasis','oligodendroglioma','who grade','idh mutation',
+        'pituitary tumor','acoustic neuroma','ependymoma','schwannoma',
+        'choroid plexus','pineal tumor','craniopharyngioma',
+        # Surgery & treatment
+        'tumor resection','brain surgery','neurosurgery','brain radiation',
+        'temozolomide','bevacizumab','immunotherapy brain','stereotactic',
+        'gamma knife','cyberknife','awake craniotomy','brain biopsy',
+        'chemoradiation','checkpoint inhibitor brain',
+        # Abnormalities
+        'brain lesion','brain mass','intracranial','brain anomaly',
+        'brain abnormality','cerebral abnormality','neurological disorder',
+        'brain hemorrhage','brain bleed','subdural hematoma','epidural hematoma',
+        'brain aneurysm','arteriovenous malformation','avm brain',
+        'brain abscess','encephalitis','brain inflammation','cerebritis',
+        'hydrocephalus','brain cyst','arachnoid cyst','brain edema',
+        'cerebral edema','brain swelling','brain atrophy',
+        # Strokes & vascular
+        'brain stroke','cerebral stroke','ischemic stroke','hemorrhagic stroke',
+        'tia','transient ischemic','cerebral infarction','brain infarct',
+        # Scans & diagnosis
+        'brain mri','mri brain','brain ct','brain pet scan','brain imaging',
+        'cranial mri','flair brain','dwi brain','brain spectroscopy',
+        # Neurological
+        'seizure brain','epilepsy brain','brain seizure','neurology diagnosis',
+        'neuro-oncology','neurooncology','brain fog diagnosis',
+        'cognitive decline brain','dementia brain','alzheimer brain',
+        'parkinson brain','multiple sclerosis brain','ms brain lesion',
+        'white matter lesion','leukoencephalopathy','brain calcification',
+        # Research
+        'brain research','neuroscience discovery','brain study','brain trial',
+        'clinical trial brain','brain clinical','cns tumor','central nervous',
+    ]
+
+    # Subreddits where ALL posts are brain-relevant — no keyword filter needed
+    BRAIN_SUBS = {'braintumor','glioblastoma','braincancer','neuro_oncology'}
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0',
+        'Accept': 'application/json,text/html,application/xhtml+xml',
+    }
+
+    all_posts = []
+    sub_counts = {}
+    seen_ids = set()
+
+    for sub in REDDIT_SUBS:
+        try:
+            url = f'https://www.reddit.com/r/{sub}/new.json?limit=100&raw_json=1'
+            resp = req.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                continue
+            posts = [c['data'] for c in resp.json().get('data',{}).get('children',[])]
+            for p in posts:
+                if p['id'] in seen_ids:
+                    continue
+                text = (p.get('title','') + ' ' + p.get('selftext','')).lower()
+                is_brain_sub = sub in BRAIN_SUBS
+                if is_brain_sub or any(k in text for k in KEYWORDS):
+                    seen_ids.add(p['id'])
+                    sub_counts[sub] = sub_counts.get(sub, 0) + 1
+                    all_posts.append({
+                        'id': p['id'],
+                        'title': p.get('title',''),
+                        'selftext': p.get('selftext','')[:500],
+                        'subreddit': p.get('subreddit_display_name', sub),
+                        'permalink': p.get('permalink',''),
+                        'url': p.get('url',''),
+                        'ups': p.get('ups', 0),
+                        'num_comments': p.get('num_comments', 0),
+                        'created_utc': int(p.get('created_utc', 0)),
+                        'author': p.get('author','[reddit]'),
+                        'source_type': 'reddit',
+                    })
+        except Exception as e:
+            print(f'[News/Reddit] {sub}: {e}')
+
+    RSS_FEEDS = [
+        ('ScienceDaily Neurology', 'https://www.sciencedaily.com/rss/health_medicine/brain_tumors.xml'),
+        ('ScienceDaily Brain', 'https://www.sciencedaily.com/rss/mind_brain.xml'),
+        ('NIH News', 'https://www.nih.gov/rss/news/news.rss'),
+        ('Medical News Today', 'https://www.medicalnewstoday.com/rss'),
+        ('NCI Cancer', 'https://www.cancer.gov/news-events/cancer-currents-blog/feed'),
+    ]
+
+    rss_headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)',
+        'Accept': 'application/rss+xml, application/xml, text/xml',
+    }
+
+    for source_name, rss_url in RSS_FEEDS:
+        try:
+            resp = req.get(rss_url, headers=rss_headers, timeout=8)
+            if resp.status_code != 200:
+                continue
+            root = ET.fromstring(resp.content)
+            ns = {'atom': 'http://www.w3.org/2005/Atom'}
+
+            # Handle both RSS and Atom formats
+            items = root.findall('.//item') or root.findall('.//atom:entry', ns)
+
+            for item in items[:30]:
+                def _t(tag):
+                    el = item.find(tag) or item.find(f'atom:{tag}', ns)
+                    return el.text.strip() if el is not None and el.text else ''
+
+                title = _t('title')
+                desc = _t('description') or _t('summary') or _t('content')
+                link = _t('link') or _t('guid')
+                pub = _t('pubDate') or _t('published') or _t('updated')
+
+                if not title:
+                    continue
+
+                # Filter by keyword
+                text = (title + ' ' + desc).lower()
+                if not any(k in text for k in KEYWORDS):
+                    continue
+
+                # Parse date
+                post_time = now
+                try:
+                    from email.utils import parsedate_to_datetime
+                    from datetime import datetime, timezone
+                    import re
+                    # Try RFC 2822 (RSS)
+                    post_time = int(parsedate_to_datetime(pub).timestamp())
+                except Exception:
+                    try:
+                        # Try ISO 8601 (Atom)
+                        from datetime import datetime
+                        pub_clean = re.sub(r'\.[0-9]+', '', pub).replace('Z', '+00:00')
+                        post_time = int(datetime.fromisoformat(pub_clean).timestamp())
+                    except Exception:
+                        post_time = now - 3600  # default 1h ago
+
+                uid = hashlib.md5((title + link).encode()).hexdigest()[:12]
+                if uid in seen_ids:
+                    continue
+                seen_ids.add(uid)
+
+                # Clean HTML from description
+                import re
+                desc_clean = re.sub(r'<[^>]+>', '', desc).strip()[:500]
+
+                all_posts.append({
+                    'id': uid,
+                    'title': title,
+                    'selftext': desc_clean,
+                    'subreddit': source_name,
+                    'permalink': '',
+                    'url': link,
+                    'ups': 0,
+                    'num_comments': 0,
+                    'created_utc': post_time,
+                    'author': source_name,
+                    'source_type': 'rss',
+                    'external_url': link,
+                })
+                sub_counts[source_name] = sub_counts.get(source_name, 0) + 1
+        except Exception as e:
+            print(f'[News/RSS] {source_name}: {e}')
+
+    # Sort newest first
+    all_posts.sort(key=lambda p: p['created_utc'], reverse=True)
+
+    return JsonResponse({
+        'posts': all_posts,
+        'sub_counts': sub_counts,
+        'fetched_at': now,
+        'total': len(all_posts),
+    })

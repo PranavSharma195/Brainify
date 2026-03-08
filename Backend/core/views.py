@@ -427,3 +427,50 @@ def cases_list(request):
     return render(request,'core/cases.html',{'scans':qs.order_by('-upload_date'),'query':q,'status_filter':status})
 
 
+
+@login_required
+def profile_view(request):
+    profile,_=UserProfile.objects.get_or_create(user=request.user)
+    history=LoginHistory.objects.filter(user=request.user)[:10]
+    my_scans=MRIScan.objects.filter(uploaded_by=request.user)
+    stats={'total':my_scans.count(),'completed':my_scans.filter(status='completed').count(),
+           'tumors':SegmentationResult.objects.filter(scan__uploaded_by=request.user,tumor_detected=True).count()}
+    if request.method=='POST':
+        u=request.user
+        u.first_name=request.POST.get('first_name',u.first_name)
+        u.last_name =request.POST.get('last_name',u.last_name)
+        # Email cannot be changed — intentionally not reading from POST
+        u.save()
+        profile.role=request.POST.get('role',profile.role)
+        # Handle avatar upload
+        if request.FILES.get('avatar'):
+            import base64
+            av = request.FILES['avatar']
+            pil = Image.open(av).convert('RGB')
+            # Fix EXIF rotation so photo is not sideways/upside down
+            try:
+                from PIL import ImageOps
+                pil = ImageOps.exif_transpose(pil)
+            except Exception:
+                pass
+            pil.thumbnail((200, 200), Image.LANCZOS)
+            buf = io.BytesIO()
+            pil.save(buf, 'JPEG', quality=85)
+            profile.avatar_b64 = 'data:image/jpeg;base64,' + base64.b64encode(buf.getvalue()).decode()
+        # Handle password change
+        old_pwd=request.POST.get('old_password','')
+        new_pwd=request.POST.get('new_password','')
+        if old_pwd and new_pwd:
+            if request.user.check_password(old_pwd):
+                if len(new_pwd)>=8:
+                    request.user.set_password(new_pwd); request.user.save()
+                    messages.success(request,'Password changed. Please log in again.')
+                    return redirect('login')
+                else: messages.error(request,'New password must be at least 8 characters.')
+            else: messages.error(request,'Current password is incorrect.')
+        profile.save()
+        messages.success(request,'Profile updated successfully.')
+        return redirect('profile')
+    ROLES=[('radiologist','Radiologist'),('neurologist','Neurologist'),
+           ('technician','Technician'),('researcher','Researcher'),('admin','Admin')]
+    return render(request,'core/profile.html',{'profile':profile,'history':history,'stats':stats,'roles':ROLES})

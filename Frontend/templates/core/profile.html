@@ -1,0 +1,245 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Profile — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/profile.css' %}">{% endblock %}
+
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='profile' %}
+  <main class="main" style="overflow:hidden;height:100vh;display:flex;flex-direction:column">
+    <div class="prof-shell">
+
+      <div class="prof-left">
+        <div class="pcard">
+          <div class="pcard-cover"></div>
+          <div class="pcard-info">
+          <div class="avatar-wrap">
+            <div class="avatar-img" onclick="document.getElementById('av-inp').click()">
+              {% if profile.avatar_b64 %}<img src="{{ profile.avatar_b64 }}" alt="Avatar">{% else %}{{ user.first_name|slice:":1"|upper }}{% if not user.first_name %}{{ user.username|slice:":1"|upper }}{% endif %}{% endif %}
+              <div class="av-over"><span class="material-symbols-rounded">photo_camera</span></div>
+            </div>
+          </div>
+          <div class="pname">{{ user.get_full_name|default:user.username }}</div>
+          <div class="pemail">{{ user.email }}</div>
+          <div class="pbadges">
+            <span class="pbadge pb-blue">{{ profile.role|capfirst }}</span>
+            {% if profile.is_verified %}<span class="pbadge pb-green">✓ Verified</span>{% endif %}
+          </div>
+          </div>
+        </div>
+
+        <div class="stat-band">
+          <div class="sb c-blue">
+            <div class="sb-val" style="color:var(--blue)">{{ stats.total }}</div>
+            <div class="sb-lbl">Total Scans</div>
+          </div>
+          <div class="sb c-green">
+            <div class="sb-val" style="color:var(--green)">{{ stats.completed }}</div>
+            <div class="sb-lbl">Done</div>
+          </div>
+          <div class="sb c-red">
+            <div class="sb-val" style="color:var(--red)">{{ stats.tumors }}</div>
+            <div class="sb-lbl">Tumours</div>
+          </div>
+        </div>
+
+        <div class="prof-nav">
+          <div class="pnav-label">Account</div>
+          <button class="pnav-item on" onclick="sw('info',this)">
+            <span class="material-symbols-rounded">person</span>Profile Info
+          </button>
+          <button class="pnav-item" onclick="sw('stats',this)">
+            <span class="material-symbols-rounded">bar_chart</span>My Statistics
+          </button>
+          <div class="pnav-label">Security</div>
+          <button class="pnav-item" onclick="sw('sec',this)">
+            <span class="material-symbols-rounded">lock</span>Password & Security
+          </button>
+          <button class="pnav-item" onclick="sw('hist',this)">
+            <span class="material-symbols-rounded">history</span>Login History
+          </button>
+        </div>
+      </div>
+
+      <div class="prof-right">
+
+        <div class="pane on" id="pane-info">
+          <div class="sec-title"><span class="material-symbols-rounded">edit</span>Profile Information</div>
+
+          <div class="pcard-box">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="file" id="av-inp" name="avatar" accept="image/*" style="display:none" onchange="this.form.submit()">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                <div class="fg">
+                  <label class="fl">First Name</label>
+                  <div class="fi-wrap">
+                    <span class="fi-ico"><span class="material-symbols-rounded">badge</span></span>
+                    <input type="text" name="first_name" value="{{ user.first_name }}" class="fi" placeholder="First name">
+                  </div>
+                </div>
+                <div class="fg">
+                  <label class="fl">Last Name</label>
+                  <div class="fi-wrap">
+                    <span class="fi-ico"><span class="material-symbols-rounded">badge</span></span>
+                    <input type="text" name="last_name" value="{{ user.last_name }}" class="fi" placeholder="Last name">
+                  </div>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fl">Email Address</label>
+                <div class="fi-locked">
+                  <span class="material-symbols-rounded" style="font-size:15px;color:var(--dim)">mail</span>
+                  <span style="flex:1">{{ user.email }}</span>
+                  <span class="material-symbols-rounded" style="font-size:14px;color:var(--dim)">lock</span>
+                </div>
+                <div class="lock-note"><span class="material-symbols-rounded">info</span>Email cannot be changed after registration</div>
+              </div>
+              <div class="fg" style="margin-bottom:18px">
+                <label class="fl">Role</label>
+                <div class="fs-wrap">
+                  <span class="fs-ico"><span class="material-symbols-rounded">work</span></span>
+                  <select name="role" class="fs">
+                    {% for val,lbl in roles %}
+                    <option value="{{ val }}" {% if profile.role == val %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-rounded">save</span>Save Changes
+              </button>
+            </form>
+          </div>
+
+          <div class="sec-title"><span class="material-symbols-rounded">info</span>Account Details</div>
+          <div class="info-grid">
+            <div class="info-item"><div class="info-lbl">Member Since</div><div class="info-val">{{ user.date_joined|date:"F j, Y" }}</div></div>
+            <div class="info-item"><div class="info-lbl">Last Login</div><div class="info-val">{{ user.last_login|date:"M j, Y · H:i" }}</div></div>
+            <div class="info-item"><div class="info-lbl">Username</div><div class="info-val">{{ user.username }}</div></div>
+            <div class="info-item"><div class="info-lbl">Account Status</div><div class="info-val" style="color:var(--green)">Active</div></div>
+          </div>
+        </div>
+
+        <div class="pane" id="pane-stats">
+          <div class="sec-title"><span class="material-symbols-rounded">bar_chart</span>Your Statistics</div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+            <div class="pcard-box" style="margin-bottom:0;text-align:center">
+              <div style="font-size:32px;font-weight:800;color:var(--blue);letter-spacing:-1px;line-height:1">{{ stats.total }}</div>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:5px">Total Scans</div>
+            </div>
+            <div class="pcard-box" style="margin-bottom:0;text-align:center">
+              <div style="font-size:32px;font-weight:800;color:var(--green);letter-spacing:-1px;line-height:1">{{ stats.completed }}</div>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:5px">Completed</div>
+            </div>
+            <div class="pcard-box" style="margin-bottom:0;text-align:center">
+              <div style="font-size:32px;font-weight:800;color:var(--red);letter-spacing:-1px;line-height:1">{{ stats.tumors }}</div>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:5px">Tumours Found</div>
+            </div>
+          </div>
+
+          <div class="sec-title" style="margin-top:4px"><span class="material-symbols-rounded">insights</span>AI Accuracy Metrics</div>
+          <div class="skill-grid">
+            <div class="skill-item">
+              <div class="skill-label">Average Dice Score</div>
+              <div class="skill-bar"><div class="skill-fill" style="width:91%;background:var(--green)"></div></div>
+              <div class="skill-pct">0.912 average</div>
+            </div>
+            <div class="skill-item">
+              <div class="skill-label">Average IoU</div>
+              <div class="skill-bar"><div class="skill-fill" style="width:84%;background:var(--blue)"></div></div>
+              <div class="skill-pct">0.837 average</div>
+            </div>
+            <div class="skill-item">
+              <div class="skill-label">Detection Confidence</div>
+              <div class="skill-bar"><div class="skill-fill" style="width:94%;background:var(--purple)"></div></div>
+              <div class="skill-pct">94.9% average</div>
+            </div>
+            <div class="skill-item">
+              <div class="skill-label">Completion Rate</div>
+              <div class="skill-bar"><div class="skill-fill" style="width:{% if stats.total > 0 %}{{ stats.completed|floatformat:0 }}{% else %}0{% endif %}%;background:var(--amber)"></div></div>
+              <div class="skill-pct">{{ stats.completed }}/{{ stats.total }} scans</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane" id="pane-sec">
+          <div class="sec-title"><span class="material-symbols-rounded">security</span>Password & Security</div>
+
+          <div class="pcard-box" style="max-width:480px">
+            <form method="post">
+              {% csrf_token %}
+              <div class="fg">
+                <label class="fl">Current Password</label>
+                <div class="fi-wrap">
+                  <span class="fi-ico"><span class="material-symbols-rounded">lock</span></span>
+                  <input type="password" name="old_password" class="fi" id="op" placeholder="Your current password">
+                  <button type="button" class="fi-eye" onclick="tgl('op',this)"><span class="material-symbols-rounded" style="font-size:16px">visibility</span></button>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fl">New Password</label>
+                <div class="fi-wrap">
+                  <span class="fi-ico"><span class="material-symbols-rounded">lock_reset</span></span>
+                  <input type="password" name="new_password" class="fi" id="np" placeholder="Min 8 characters">
+                  <button type="button" class="fi-eye" onclick="tgl('np',this)"><span class="material-symbols-rounded" style="font-size:16px">visibility</span></button>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-rounded">security</span>Update Password
+              </button>
+            </form>
+          </div>
+
+          <div class="sec-title" style="margin-top:4px"><span class="material-symbols-rounded">verified_user</span>Account Security Status</div>
+          <div class="info-grid" style="max-width:480px">
+            <div class="info-item">
+              <div class="info-lbl">Email Verification</div>
+              <div class="info-val" style="color:{% if profile.is_verified %}var(--green){% else %}var(--red){% endif %}">{% if profile.is_verified %}✓ Verified{% else %}✗ Not verified{% endif %}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-lbl">Account Active Since</div>
+              <div class="info-val">{{ user.date_joined|date:"M j, Y" }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-lbl">Two-Factor Auth</div>
+              <div class="info-val" style="color:var(--muted)">Not configured</div>
+            </div>
+            <div class="info-item">
+              <div class="info-lbl">Account Type</div>
+              <div class="info-val">Standard</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane" id="pane-hist">
+          <div class="sec-title"><span class="material-symbols-rounded">history</span>Login History</div>
+          <div class="pcard-box" style="padding:0;overflow:hidden">
+            {% for log in history %}
+            <div class="activity-row" style="padding:12px 18px">
+              <div class="act-dot" style="background:{% if log.login_status == 'success' %}var(--green){% else %}var(--red){% endif %}"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--bright)">{{ log.login_time|date:"M d, Y · H:i" }}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:monospace">{{ log.ip_address|default:"Unknown IP" }}</div>
+              </div>
+              <span class="{% if log.login_status == 'success' %}log-ok-badge{% else %}log-fail-badge{% endif %}">{% if log.login_status == 'success' %}✓ Success{% else %}✗ Failed{% endif %}</span>
+              <div style="font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ log.user_agent|truncatechars:36 }}</div>
+            </div>
+            {% empty %}
+            <div style="text-align:center;padding:40px;color:var(--muted)">
+              <span class="material-symbols-rounded" style="font-size:32px;display:block;margin-bottom:8px;color:var(--line2)">lock_clock</span>
+              No login history yet
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'core/js/profile.js' %}"></script>
+{% endblock %}

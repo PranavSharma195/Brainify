@@ -668,3 +668,39 @@ def news_feed_api(request):
         'fetched_at': now,
         'total': len(all_posts),
     })
+
+def news_comments_api(request, permalink):
+    import requests as req
+    try:
+        # permalink comes as subreddit/comments/id/slug
+        url = f'https://www.reddit.com/{permalink}.json?limit=50'
+        resp = req.get(url, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; BrainifyApp/1.0)',
+            'Accept': 'application/json',
+        }, timeout=10)
+        data = resp.json()
+
+        post_data = data[0]['data']['children'][0]['data']
+        comments_raw = data[1]['data']['children']
+
+        comments = []
+        for c in comments_raw:
+            if c.get('kind') != 't1':
+                continue
+            cd = c['data']
+            body = cd.get('body','')
+            if body in ('[deleted]','[removed]',''):
+                continue
+            comments.append({
+                'author': cd.get('author',''),
+                'body': body[:800],
+                'ups': cd.get('ups', 0),
+                'created_utc': cd.get('created_utc', 0),
+            })
+
+        return JsonResponse({
+            'selftext': post_data.get('selftext','')[:2000],
+            'comments': comments,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'comments': []}, status=500)

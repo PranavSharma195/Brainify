@@ -1,0 +1,125 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}AI Assistant — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/chatbot.css' %}">{% endblock %}
+
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='chatbot' %}
+  <main class="main" style="padding:0;height:100vh;overflow:hidden">
+    <div class="chat-shell">
+
+      <div class="chat-left">
+        <div class="chat-left-head">
+          <div style="font-size:13px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:7px;margin-bottom:3px">
+            <span class="material-symbols-rounded" style="font-size:16px;color:var(--blue)">smart_toy</span>AI Assistant
+          </div>
+          <div style="font-size:11px;color:var(--muted)">Choose a mode to get started</div>
+        </div>
+
+        <div class="mode-cards">
+          <div class="mode-card report active" id="mc-report" onclick="switchMode('report')">
+            <span class="mode-badge">Mode 1</span>
+            <div class="mode-icon report"><span class="material-symbols-rounded">description</span></div>
+            <div class="mode-name">MRI Report Explainer</div>
+            <div class="mode-desc">Paste a radiology report for a plain-English breakdown of findings & next steps.</div>
+          </div>
+          <div class="mode-card research" id="mc-research" onclick="switchMode('research')">
+            <span class="mode-badge">Mode 2</span>
+            <div class="mode-icon research"><span class="material-symbols-rounded">biotech</span></div>
+            <div class="mode-name">Research Assistant</div>
+            <div class="mode-desc">Ask about brain tumors, treatments, clinical trials & WHO grades.</div>
+          </div>
+        </div>
+
+        <div class="hist-section-label">Recent Chats</div>
+        <div class="chat-history" id="history-list">
+          <div style="font-size:12px;color:var(--dim);padding:6px 10px;font-style:italic">No saved chats yet</div>
+        </div>
+        <button class="new-chat-btn" onclick="newChat()">
+          <span class="material-symbols-rounded">add</span>New Chat
+        </button>
+      </div>
+
+      <div class="chat-main">
+        <div class="chat-topbar">
+          <div class="cmi">
+            <div class="cmi-dot report" id="cmi-dot"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--white)" id="cmi-title">MRI Report Explainer</div>
+              <div style="font-size:11px;color:var(--muted)" id="cmi-sub">Expand the report section below and paste your report</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="ai-badge"><span class="material-symbols-rounded">bolt</span>Brainify AI</div>
+            <button class="tb-btn" onclick="clearChat()">
+              <span class="material-symbols-rounded">delete_sweep</span>Clear
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-msgs" id="chat-msgs"></div>
+
+        <div class="report-area" id="report-area">
+          <div class="report-toggle" onclick="toggleReport()">
+            <div class="rtl">
+              <span class="material-symbols-rounded">article</span>
+              Paste MRI / Radiology Report
+              <span class="rhas" id="rhas">✓ Report added</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="rcount" style="font-size:11px;color:var(--dim)"></span>
+              <span class="material-symbols-rounded rex" id="rex">expand_more</span>
+            </div>
+          </div>
+          <div class="rbody" id="rbody">
+            <textarea id="report-input"
+              placeholder="Paste the full radiology report text here…&#10;&#10;e.g. 'MRI brain with and without contrast: There is a 3.2 cm ring-enhancing lesion in the right temporal lobe with surrounding vasogenic edema consistent with high-grade glioma…'"
+              oninput="onReportInput()"></textarea>
+            <div class="rhint">
+              <span class="material-symbols-rounded">info</span>
+              The AI reads this report in every reply — ask as many follow-up questions as you want.
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-wrap">
+          <div class="setup-notice" id="setup-notice" style="display:none">
+            <span class="material-symbols-rounded">key</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px">AI Setup Required</div>
+              <div style="font-size:12px;color:var(--soft);line-height:1.65">
+                Add your key to <code style="background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px;color:#fb923c;font-family:'JetBrains Mono',monospace;font-size:11px">.env</code>:
+                <code style="background:rgba(0,0,0,.3);padding:2px 8px;border-radius:5px;color:#fb923c;font-family:'JetBrains Mono',monospace;font-size:11px">GROQ_API_KEY=gsk_...</code>
+                — free at <a href="https://console.groq.com" target="_blank" style="color:var(--blue)">console.groq.com</a>
+              </div>
+            </div>
+          </div>
+          <div class="input-row">
+            <textarea class="msg-input" id="msg-input" rows="1"
+              placeholder="Ask a question…"
+              onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="send-btn report" id="send-btn" onclick="sendMessage()">
+              <span class="material-symbols-rounded">send</span>
+            </button>
+          </div>
+          <div class="hints">
+            <span class="hint"><span class="material-symbols-rounded">keyboard_return</span>Enter to send</span>
+            <span class="hint"><span class="material-symbols-rounded">keyboard</span>Shift+Enter for new line</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.__bfy_user_initial='{{ request.user.get_full_name|default:request.user.username|slice:":1"|upper }}';
+window.__bfy_csrf='{{ csrf_token }}';
+window.__bfy_chatbot_url='{% url "chatbot_api" %}';
+window.__bfy_ls_key='brainify_chats_{{ request.user.id }}';
+</script>
+<script src="{% static 'core/js/chatbot.js' %}"></script>
+{% endblock %}

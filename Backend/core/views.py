@@ -704,3 +704,369 @@ def news_comments_api(request, permalink):
         })
     except Exception as e:
         return JsonResponse({'error': str(e), 'comments': []}, status=500)
+
+
+@login_required
+def news_view(request):
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    return render(request, 'core/news.html', {
+        'notifications_on': profile.news_notifications,
+    })
+
+@login_required
+def toggle_notifications(request):
+    if request.method == 'POST':
+        import json
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        data = json.loads(request.body)
+        profile.news_notifications = data.get('enabled', True)
+        profile.save()
+        return JsonResponse({'ok': True, 'enabled': profile.news_notifications})
+    return JsonResponse({'ok': False})
+
+
+@login_required
+def news_feed_api(request):
+    import requests as req
+    import time
+    import xml.etree.ElementTree as ET
+    import hashlib
+
+    now = int(time.time())
+
+    REDDIT_SUBS = [
+        'braintumor','glioblastoma','braincancer','neuro_oncology',
+        'neurology','oncology','medicalscience','neuroscience',
+        'askdocs','medicine','healthcareworkers',
+    ]
+
+    # Expanded — covers ALL brain abnormalities not just tumors
+    KEYWORDS = [
+        # Tumors
+        'brain tumor','brain tumour','glioblastoma','glioma','meningioma',
+        'astrocytoma','medulloblastoma','gbm','craniotomy','brain cancer',
+        'brain metastasis','oligodendroglioma','who grade','idh mutation',
+        'pituitary tumor','acoustic neuroma','ependymoma','schwannoma',
+        'choroid plexus','pineal tumor','craniopharyngioma',
+        # Surgery & treatment
+        'tumor resection','brain surgery','neurosurgery','brain radiation',
+        'temozolomide','bevacizumab','immunotherapy brain','stereotactic',
+        'gamma knife','cyberknife','awake craniotomy','brain biopsy',
+        'chemoradiation','checkpoint inhibitor brain',
+        # Abnormalities
+        'brain lesion','brain mass','intracranial','brain anomaly',
+        'brain abnormality','cerebral abnormality','neurological disorder',
+        'brain hemorrhage','brain bleed','subdural hematoma','epidural hematoma',
+        'brain aneurysm','arteriovenous malformation','avm brain',
+        'brain abscess','encephalitis','brain inflammation','cerebritis',
+        'hydrocephalus','brain cyst','arachnoid cyst','brain edema',
+        'cerebral edema','brain swelling','brain atrophy',
+        # Strokes & vascular
+        'brain stroke','cerebral stroke','ischemic stroke','hemorrhagic stroke',
+        'tia','transient ischemic','cerebral infarction','brain infarct',
+        # Scans & diagnosis
+        'brain mri','mri brain','brain ct','brain pet scan','brain imaging',
+        'cranial mri','flair brain','dwi brain','brain spectroscopy',
+        # Neurological
+        'seizure brain','epilepsy brain','brain seizure','neurology diagnosis',
+        'neuro-oncology','neurooncology','brain fog diagnosis',
+        'cognitive decline brain','dementia brain','alzheimer brain',
+        'parkinson brain','multiple sclerosis brain','ms brain lesion',
+        'white matter lesion','leukoencephalopathy','brain calcification',
+        # Research
+        'brain research','neuroscience discovery','brain study','brain trial',
+        'clinical trial brain','brain clinical','cns tumor','central nervous',
+    ]
+
+    # Subreddits where ALL posts are brain-relevant — no keyword filter needed
+    BRAIN_SUBS = {'braintumor','glioblastoma','braincancer','neuro_oncology'}
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0',
+        'Accept': 'application/json,text/html,application/xhtml+xml',
+    }
+
+    all_posts = []
+    sub_counts = {}
+    seen_ids = set()
+
+    for sub in REDDIT_SUBS:
+        try:
+            url = f'https://www.reddit.com/r/{sub}/new.json?limit=100&raw_json=1'
+            resp = req.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                continue
+            posts = [c['data'] for c in resp.json().get('data',{}).get('children',[])]
+            for p in posts:
+                if p['id'] in seen_ids:
+                    continue
+                text = (p.get('title','') + ' ' + p.get('selftext','')).lower()
+                is_brain_sub = sub in BRAIN_SUBS
+                if is_brain_sub or any(k in text for k in KEYWORDS):
+                    seen_ids.add(p['id'])
+                    sub_counts[sub] = sub_counts.get(sub, 0) + 1
+                    all_posts.append({
+                        'id': p['id'],
+                        'title': p.get('title',''),
+                        'selftext': p.get('selftext','')[:500],
+                        'subreddit': p.get('subreddit_display_name', sub),
+                        'permalink': p.get('permalink',''),
+                        'url': p.get('url',''),
+                        'ups': p.get('ups', 0),
+                        'num_comments': p.get('num_comments', 0),
+                        'created_utc': int(p.get('created_utc', 0)),
+                        'author': p.get('author','[reddit]'),
+                        'source_type': 'reddit',
+                    })
+        except Exception as e:
+            print(f'[News/Reddit] {sub}: {e}')
+
+    RSS_FEEDS = [
+        ('ScienceDaily Neurology', 'https://www.sciencedaily.com/rss/health_medicine/brain_tumors.xml'),
+        ('ScienceDaily Brain', 'https://www.sciencedaily.com/rss/mind_brain.xml'),
+        ('NIH News', 'https://www.nih.gov/rss/news/news.rss'),
+        ('Medical News Today', 'https://www.medicalnewstoday.com/rss'),
+        ('NCI Cancer', 'https://www.cancer.gov/news-events/cancer-currents-blog/feed'),
+    ]
+
+    rss_headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)',
+        'Accept': 'application/rss+xml, application/xml, text/xml',
+    }
+
+    for source_name, rss_url in RSS_FEEDS:
+        try:
+            resp = req.get(rss_url, headers=rss_headers, timeout=8)
+            if resp.status_code != 200:
+                continue
+            root = ET.fromstring(resp.content)
+            ns = {'atom': 'http://www.w3.org/2005/Atom'}
+
+            # Handle both RSS and Atom formats
+            items = root.findall('.//item') or root.findall('.//atom:entry', ns)
+
+            for item in items[:30]:
+                def _t(tag):
+                    el = item.find(tag) or item.find(f'atom:{tag}', ns)
+                    return el.text.strip() if el is not None and el.text else ''
+
+                title = _t('title')
+                desc = _t('description') or _t('summary') or _t('content')
+                link = _t('link') or _t('guid')
+                pub = _t('pubDate') or _t('published') or _t('updated')
+
+                if not title:
+                    continue
+
+                # Filter by keyword
+                text = (title + ' ' + desc).lower()
+                if not any(k in text for k in KEYWORDS):
+                    continue
+
+                # Parse date
+                post_time = now
+                try:
+                    from email.utils import parsedate_to_datetime
+                    from datetime import datetime, timezone
+                    import re
+                    # Try RFC 2822 (RSS)
+                    post_time = int(parsedate_to_datetime(pub).timestamp())
+                except Exception:
+                    try:
+                        # Try ISO 8601 (Atom)
+                        from datetime import datetime
+                        pub_clean = re.sub(r'\.[0-9]+', '', pub).replace('Z', '+00:00')
+                        post_time = int(datetime.fromisoformat(pub_clean).timestamp())
+                    except Exception:
+                        post_time = now - 3600  # default 1h ago
+
+                uid = hashlib.md5((title + link).encode()).hexdigest()[:12]
+                if uid in seen_ids:
+                    continue
+                seen_ids.add(uid)
+
+                # Clean HTML from description
+                import re
+                desc_clean = re.sub(r'<[^>]+>', '', desc).strip()[:500]
+
+                all_posts.append({
+                    'id': uid,
+                    'title': title,
+                    'selftext': desc_clean,
+                    'subreddit': source_name,
+                    'permalink': '',
+                    'url': link,
+                    'ups': 0,
+                    'num_comments': 0,
+                    'created_utc': post_time,
+                    'author': source_name,
+                    'source_type': 'rss',
+                    'external_url': link,
+                })
+                sub_counts[source_name] = sub_counts.get(source_name, 0) + 1
+        except Exception as e:
+            print(f'[News/RSS] {source_name}: {e}')
+
+    # Sort newest first
+    all_posts.sort(key=lambda p: p['created_utc'], reverse=True)
+
+    return JsonResponse({
+        'posts': all_posts,
+        'sub_counts': sub_counts,
+        'fetched_at': now,
+        'total': len(all_posts),
+    })
+
+
+def news_comments_api(request, permalink):
+    import requests as req
+    try:
+        # permalink comes as subreddit/comments/id/slug
+        url = f'https://www.reddit.com/{permalink}.json?limit=50'
+        resp = req.get(url, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; BrainifyApp/1.0)',
+            'Accept': 'application/json',
+        }, timeout=10)
+        data = resp.json()
+
+        post_data = data[0]['data']['children'][0]['data']
+        comments_raw = data[1]['data']['children']
+
+        comments = []
+        for c in comments_raw:
+            if c.get('kind') != 't1':
+                continue
+            cd = c['data']
+            body = cd.get('body','')
+            if body in ('[deleted]','[removed]',''):
+                continue
+            comments.append({
+                'author': cd.get('author',''),
+                'body': body[:800],
+                'ups': cd.get('ups', 0),
+                'created_utc': cd.get('created_utc', 0),
+            })
+
+        return JsonResponse({
+            'selftext': post_data.get('selftext','')[:2000],
+            'comments': comments,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'comments': []}, status=500)
+
+
+@login_required
+def chatbot_view(request):
+    return render(request, 'core/chatbot.html', {'active': 'chatbot'})
+
+@login_required
+def chatbot_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    import json, os
+
+    data     = json.loads(request.body)
+    mode     = data.get('mode', 'research')
+    messages = data.get('messages', [])
+    report   = data.get('report', '').strip()
+
+    GROQ_KEY = os.environ.get('GROQ_API_KEY', '')
+    if not GROQ_KEY:
+        return JsonResponse({
+            'error': 'GROQ_API_KEY not set. Get a free key at console.groq.com — add it to your .env file as GROQ_API_KEY=gsk_...',
+            'ok': False
+        }, status=401)
+
+    if mode == 'report':
+        system_base = """You are a medical AI assistant specializing in brain MRI and radiology report interpretation for the Brainify platform.
+Explain reports in clear plain English for clinicians, patients, and families.
+When analyzing a report:
+1. Summarize KEY FINDINGS (what was found, where, how big)
+2. Explain what each finding MEANS clinically
+3. Flag URGENT/concerning findings with ⚠️
+4. Define all medical terminology in simple words
+5. List typical NEXT STEPS the patient should take
+6. Clearly note what is NORMAL vs ABNORMAL
+Use headers and bullet points. Be compassionate but accurate. Always recommend consulting a physician for final decisions."""
+        # Inject report directly into system prompt so it persists across ALL turns
+        if report:
+            system = system_base + f"""
+
+═══════════════════════════════════════════
+PATIENT REPORT (analyze this throughout the entire conversation):
+═══════════════════════════════════════════
+{report}
+═══════════════════════════════════════════
+Always refer back to this report when answering questions. The user is asking about THIS specific report."""
+        else:
+            system = system_base + """
+
+No report has been pasted yet. If the user asks about their report, politely ask them to paste the report text in the text area below the chat."""
+    else:
+        system = """You are a specialized brain tumor and neurological research assistant for the Brainify AI radiology platform.
+Deep expertise in: glioblastoma, glioma, meningioma, astrocytoma, medulloblastoma, all WHO grades, brain hemorrhage, aneurysm, stroke, hydrocephalus.
+Treatments: surgery, radiation, chemotherapy, immunotherapy, clinical trials, targeted therapy.
+Diagnostics: MRI sequences (FLAIR, DWI, SWI), CT, PET, biopsy, biomarkers (IDH, MGMT, EGFR, 1p/19q).
+Research: 2024-2025 clinical trials, survival statistics, emerging therapies, standard of care protocols.
+Provide accurate, detailed medical information with clear structure. Always note when professional consultation is needed."""
+
+    groq_messages = [{'role': 'system', 'content': system}]
+    for m in messages:
+        role = 'assistant' if m['role'] == 'assistant' else 'user'
+        groq_messages.append({'role': role, 'content': m['content']})
+
+    MODELS = [
+        ('llama-3.3-70b-versatile', 8192),
+        ('llama-3.1-8b-instant',    8192),
+        ('mixtral-8x7b-32768',      32768),
+        ('gemma2-9b-it',            8192),
+    ]
+
+    last_error = ''
+    for model, max_tok in MODELS:
+        payload = json.dumps({
+            'model': model,
+            'messages': groq_messages,
+            'max_tokens': min(2048, max_tok),
+            'temperature': 0.4,
+        }).encode('utf-8')
+
+        try:
+            import requests as req_lib
+            r = req_lib.post(
+                'https://api.groq.com/openai/v1/chat/completions',
+                data=payload,
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {GROQ_KEY}',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                    'Origin': 'https://console.groq.com',
+                    'Referer': 'https://console.groq.com/',
+                },
+                timeout=30
+            )
+            if r.status_code == 429:
+                last_error = f'rate_limit:{model}'
+                continue
+            if not r.ok:
+                try:
+                    err_msg = r.json().get('error', {}).get('message', r.text[:300])
+                except Exception:
+                    err_msg = r.text[:300]
+                if r.status_code in (403,) or '1010' in err_msg:
+                    last_error = 'cloudflare'; continue
+                return JsonResponse({'error': f'Error: {err_msg}', 'ok': False}, status=500)
+            reply = r.json()['choices'][0]['message']['content']
+            return JsonResponse({'reply': reply, 'ok': True, 'model': model})
+
+        except Exception as e:
+            last_error = str(e)
+            continue
+
+    if 'rate_limit' in last_error:
+        return JsonResponse({
+            'error': '⏱ The AI is busy right now. Please wait 15 seconds and try again.',
+            'ok': False, 'quota': True
+        }, status=429)
+    return JsonResponse({'error': last_error or 'Request failed', 'ok': False}, status=500)

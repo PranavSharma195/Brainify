@@ -1,0 +1,162 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}User Management — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/users.css' %}">{% endblock %}
+
+{% block content %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with active='users' %}
+  <main class="main">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-sub">{{ total_users }} registered user{{ total_users|pluralize }}</p>
+      </div>
+      <a href="{% url 'add_user' %}" class="btn btn-primary btn-sm">
+        <span class="material-symbols-rounded">person_add</span>Add User
+      </a>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Search -->
+      <form method="get" class="search-box">
+        <input type="text" name="q" value="{{ q }}" class="search-inp" placeholder="Search name, email or username...">
+        <button type="submit" class="btn btn-ghost btn-sm">
+          <span class="material-symbols-rounded">search</span>Search
+        </button>
+        {% if q %}
+        <a href="{% url 'user_management' %}" class="btn btn-ghost btn-sm">
+          <span class="material-symbols-rounded">close</span>Clear
+        </a>
+        {% endif %}
+      </form>
+
+      <!-- Table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Scans</th>
+              <th>Verified</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <!-- User -->
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  {% if u.profile.avatar_b64 %}
+                  <img src="{{ u.profile.avatar_b64 }}"
+                    style="width:34px;height:34px;object-fit:cover;border-radius:9px;flex-shrink:0">
+                  {% else %}
+                  <div class="ua-sm">
+                    {{ u.first_name|slice:":1"|upper }}{% if not u.first_name %}{{ u.username|slice:":1"|upper }}{% endif %}
+                  </div>
+                  {% endif %}
+                  <div>
+                    <div style="font-weight:600;color:var(--white)">{{ u.get_full_name|default:u.username }}</div>
+                    <div style="font-size:11px;color:var(--muted)">@{{ u.username }}</div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Email -->
+              <td style="color:var(--soft)">{{ u.email|default:"—" }}</td>
+
+              <!-- Role -->
+              <td>
+                {% if u.is_superuser %}
+                  <span class="badge badge-violet">Superuser</span>
+                {% elif u.is_staff %}
+                  <span class="badge badge-blue">Staff</span>
+                {% elif u.profile %}
+                  <span class="badge badge-cyan">{{ u.profile.role|capfirst }}</span>
+                {% else %}
+                  <span class="badge badge-slate">User</span>
+                {% endif %}
+              </td>
+
+              <!-- Scans -->
+              <td style="font-weight:700;color:var(--white)">{{ u.scan_count }}</td>
+
+              <!-- Verified -->
+              <td>
+                {% if u.profile and u.profile.is_verified %}
+                  <span class="material-symbols-rounded" style="font-size:18px;color:#22c55e;font-variation-settings:'FILL' 1">verified</span>
+                {% else %}
+                  <span class="material-symbols-rounded" style="font-size:18px;color:var(--muted)">cancel</span>
+                {% endif %}
+              </td>
+
+              <!-- Status -->
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600">
+                  <span class="dot {% if u.is_active %}dot-green{% else %}dot-red{% endif %}"></span>
+                  {% if u.is_active %}Active{% else %}Inactive{% endif %}
+                </div>
+              </td>
+
+              <!-- Joined -->
+              <td style="font-size:12px;color:var(--muted)">{{ u.date_joined|date:"M d, Y" }}</td>
+
+              <!-- Actions -->
+              <td>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                  <a href="{% url 'edit_user' u.id %}" class="btn btn-ghost btn-sm" style="padding:5px 10px;font-size:12px">Edit</a>
+                  {% if u.id != request.user.id %}
+                    <a href="{% url 'toggle_user_status' u.id %}"
+                       onclick="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.get_full_name|default:u.username }}?')"
+                       class="btn btn-ghost btn-sm" style="padding:5px 10px;font-size:12px">
+                      {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </a>
+                    {% if not u.is_superuser %}
+                    <a href="{% url 'delete_user' u.id %}"
+                       onclick="return confirm('Permanently delete {{ u.get_full_name|default:u.username }}? This cannot be undone.')"
+                       class="btn btn-sm" style="padding:5px 10px;font-size:12px;background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)">
+                      Delete
+                    </a>
+                    {% endif %}
+                  {% else %}
+                    <span style="font-size:11px;color:var(--muted);padding:5px">(you)</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">
+                <span class="material-symbols-rounded" style="font-size:32px;display:block;margin-bottom:8px">group</span>
+                No users found{% if q %} matching "{{ q }}"{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if page.has_other_pages %}
+      <div style="display:flex;gap:6px;margin-top:16px;justify-content:center;align-items:center">
+        {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}" class="btn btn-ghost btn-sm">← Prev</a>
+        {% endif %}
+        <span style="padding:8px 16px;font-size:13px;color:var(--muted)">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}" class="btn btn-ghost btn-sm">Next →</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </main>
+</div>
+{% endblock %}

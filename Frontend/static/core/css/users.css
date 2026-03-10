@@ -1,0 +1,17 @@
+.user-table{width:100%;border-collapse:collapse}
+.user-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--line)}
+.user-table td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text);vertical-align:middle}
+.user-table tr:last-child td{border-bottom:none}
+.user-table tr:hover td{background:var(--card2)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-blue{background:rgba(108,142,245,.15);color:#5b9cf6;border:1px solid rgba(108,142,245,.2)}
+.badge-violet{background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.2)}
+.badge-cyan{background:rgba(0,212,255,.1);color:#00d4ff;border:1px solid rgba(0,212,255,.15)}
+.badge-slate{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.15)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:#22c55e;box-shadow:none}
+.dot-red{background:#ef4444}
+.search-box{display:flex;gap:10px;margin-bottom:20px}
+.search-inp{flex:1;max-width:340px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;color:var(--text);font-size:13.5px;font-family:var(--font);outline:none}
+.search-inp:focus{border-color:var(--blue)}
+.ua-sm{width:34px;height:34px;border-radius:9px;background:linear-gradient(145deg,var(--blue),var(--blue3));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}

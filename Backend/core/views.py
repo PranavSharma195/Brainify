@@ -1070,3 +1070,102 @@ Provide accurate, detailed medical information with clear structure. Always note
             'ok': False, 'quota': True
         }, status=429)
     return JsonResponse({'error': last_error or 'Request failed', 'ok': False}, status=500)
+
+
+@login_required
+def user_management(request):
+    if not _is_admin(request): messages.error(request,'Admin access required.'); return redirect('upload')
+    q=request.GET.get('q','')
+    qs=User.objects.select_related('profile').annotate(scan_count=Count('scans')).order_by('-date_joined')
+    if q: qs=qs.filter(Q(username__icontains=q)|Q(email__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q))
+    return render(request,'core/users.html',{'users':qs,'query':q})
+
+
+@login_required
+def add_user(request):
+    if not _is_admin(request): return redirect('upload')
+    ROLES=[('radiologist','radiology','Reads & interprets MRI scans','#4f8ef7'),
+           ('neurologist','neurology','Brain & nervous system specialist','#a78bfa'),
+           ('technician','settings','Operates imaging equipment','#00d4ff'),
+           ('researcher','science','Clinical research & analysis','#fbbf24'),
+           ('admin','shield_person','Platform administration','#f05252')]
+    if request.method=='POST':
+        full_name=request.POST.get('first_name','').strip()
+        email=request.POST.get('email','').strip().lower()
+        role=request.POST.get('role','radiologist')
+        pwd=request.POST.get('password','')
+        parts = full_name.split(' ', 1)
+        fn = parts[0]; ln = parts[1] if len(parts) > 1 else ''
+        if not full_name or not email or not pwd:
+            messages.error(request,'Full name, email and password are required.')
+            return render(request,'core/add_user.html',{'role_choices':ROLES})
+        if len(pwd) < 8:
+            messages.error(request,'Password must be at least 8 characters.')
+            return render(request,'core/add_user.html',{'role_choices':ROLES})
+        # Validate email format
+        import re, socket
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            messages.error(request,'Please enter a valid email address.')
+            return render(request,'core/add_user.html',{'role_choices':ROLES})
+        # Verify email actually exists via SMTP
+        from .email_utils import verify_email_exists
+        email_ok, email_err = verify_email_exists(email)
+        if not email_ok:
+            messages.error(request, email_err)
+            return render(request,'core/add_user.html',{'role_choices':ROLES})
+        if User.objects.filter(email=email).exists():
+            messages.error(request,'Email already exists.')
+            return render(request,'core/add_user.html',{'role_choices':ROLES})
+        # Store as pending — only create real user after email verified
+        from django.contrib.auth.hashers import make_password
+        from .models import PendingSignup
+        PendingSignup.objects.filter(email=email).delete()
+        token = generate_token()
+        PendingSignup.objects.create(
+            token=token,
+            full_name=f'{fn} {ln}'.strip(),
+            email=email,
+            password_hash=make_password(pwd),
+            role=role,
+        )
+        from .email_utils import send_pending_verification_email
+        send_pending_verification_email(fn, email, token)
+        messages.success(request, f'Invitation sent to {email}. They must verify before their account is created.')
+        return redirect('user_management')
+    return render(request,'core/add_user.html',{'role_choices':ROLES})
+
+
+@login_required
+def edit_user(request, user_id):
+    if not _is_admin(request): return redirect('upload')
+    target=get_object_or_404(User,id=user_id)
+    profile,_=UserProfile.objects.get_or_create(user=target)
+    ROLES=[('radiologist','Radiologist'),('neurologist','Neurologist'),('technician','Technician'),
+           ('researcher','Researcher'),('admin','Admin')]
+    if request.method=='POST':
+        target.first_name=request.POST.get('first_name',target.first_name)
+        target.last_name =request.POST.get('last_name',target.last_name)
+        target.email     =request.POST.get('email',target.email)
+        target.is_staff  =request.POST.get('is_staff')=='on'; target.save()
+        profile.role=request.POST.get('role',profile.role); profile.save()
+        pwd=request.POST.get('new_password','')
+        if pwd: target.set_password(pwd); target.save()
+        messages.success(request,f'User {target.username} updated.'); return redirect('user_management')
+    return render(request,'core/edit_user.html',{'target':target,'profile':profile,'roles':ROLES})
+
+
+@login_required
+def delete_user(request, user_id):
+    if not _is_admin(request): return redirect('upload')
+    target=get_object_or_404(User,id=user_id)
+    if target.id==request.user.id: messages.error(request,"Cannot delete your own account."); return redirect('user_management')
+    name=target.get_full_name() or target.username; target.delete()
+    messages.success(request,f'User "{name}" deleted.'); return redirect('user_management')
+
+
+@login_required
+def toggle_user_status(request, user_id):
+    if not _is_admin(request): return redirect('upload')
+    target=get_object_or_404(User,id=user_id)
+    target.is_active=not target.is_active; target.save()
+    messages.success(request,f'User {"activated" if target.is_active else "deactivated"}.'); return redirect('user_management')

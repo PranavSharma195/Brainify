@@ -1169,3 +1169,36 @@ def toggle_user_status(request, user_id):
     target=get_object_or_404(User,id=user_id)
     target.is_active=not target.is_active; target.save()
     messages.success(request,f'User {"activated" if target.is_active else "deactivated"}.'); return redirect('user_management')
+
+@login_required
+def admin_analytics(request):
+    if not _is_admin(request): messages.error(request,'Admin access required.'); return redirect('upload')
+    now=timezone.now()
+    days=[]; counts=[]
+    for i in range(13,-1,-1):
+        d=(now-timedelta(days=i)).date()
+        days.append(d.strftime('%b %d')); counts.append(MRIScan.objects.filter(upload_date__date=d).count())
+    user_days=[]; user_counts=[]
+    for i in range(13,-1,-1):
+        d=(now-timedelta(days=i)).date()
+        user_days.append(d.strftime('%b %d')); user_counts.append(User.objects.filter(date_joined__date=d).count())
+    sev_data=list(SegmentationResult.objects.values('severity').annotate(n=Count('id')).order_by('severity'))
+    type_data=list(MRIScan.objects.values('scan_type').annotate(n=Count('id')).order_by('-n'))
+    ctx={
+        'total_users':User.objects.count(), 'total_scans':MRIScan.objects.count(),
+        'completed':MRIScan.objects.filter(status='completed').count(),
+        'tumors':SegmentationResult.objects.filter(tumor_detected=True).count(),
+        'total_reports':Report.objects.count(),
+        'avg_dice':round(SegmentationResult.objects.aggregate(v=Avg('dice_score'))['v'] or 0,4),
+        'avg_iou':round(SegmentationResult.objects.aggregate(v=Avg('iou_score'))['v'] or 0,4),
+        'avg_acc':round(SegmentationResult.objects.aggregate(v=Avg('accuracy'))['v'] or 0,2),
+        'days_json':json.dumps(days), 'counts_json':json.dumps(counts),
+        'user_days_json':json.dumps(user_days), 'user_counts_json':json.dumps(user_counts),
+        'sev_labels_json':json.dumps([x['severity'].capitalize() for x in sev_data]),
+        'sev_counts_json':json.dumps([x['n'] for x in sev_data]),
+        'type_labels_json':json.dumps([x['scan_type'] for x in type_data]),
+        'type_counts_json':json.dumps([x['n'] for x in type_data]),
+        'recent_scans':MRIScan.objects.select_related('uploaded_by','result').order_by('-upload_date')[:20],
+        'recent_logins':LoginHistory.objects.select_related('user').order_by('-login_time')[:15],
+    }
+    return render(request,'core/admin_analytics.html',ctx)

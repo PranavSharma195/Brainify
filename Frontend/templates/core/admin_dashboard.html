@@ -1,0 +1,146 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/admin_dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with active='analytics' %}
+  <main class="main">
+    <div class="page-head">
+      <h1>Admin Dashboard</h1>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px;">System overview, analytics, and real-time metrics</p>
+    </div>
+    <div class="page-body">
+
+      <!-- STAT CARDS -->
+      <div class="grid-4" style="margin-bottom:24px;">
+        <div class="stat-card blue">
+          <div class="stat-icon" style="background:rgba(59,130,246,.1);"><span class="material-symbols-rounded" style="color:var(--blue);">group</span></div>
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value">{{ total_users }}</div>
+          <div class="stat-sub">Registered accounts</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon" style="background:rgba(16,185,129,.1);"><span class="material-symbols-rounded" style="color:var(--emerald);">brain</span></div>
+          <div class="stat-label">Total Scans</div>
+          <div class="stat-value">{{ total_scans }}</div>
+          <div class="stat-sub">{{ completed }} completed</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon" style="background:rgba(244,63,94,.1);"><span class="material-symbols-rounded" style="color:var(--rose);">warning</span></div>
+          <div class="stat-label">Tumors Detected</div>
+          <div class="stat-value">{{ tumors }}</div>
+          <div class="stat-sub">Positive findings</div>
+        </div>
+        <div class="stat-card violet">
+          <div class="stat-icon" style="background:rgba(139,92,246,.1);"><span class="material-symbols-rounded" style="color:var(--violet);">description</span></div>
+          <div class="stat-label">Reports Generated</div>
+          <div class="stat-value">{{ total_reports }}</div>
+          <div class="stat-sub">PDFs created</div>
+        </div>
+      </div>
+
+      <!-- AVG METRICS -->
+      {% if avg_metrics.avg_dice %}
+      <div class="grid-3" style="margin-bottom:24px;">
+        <div class="card card-sm" style="display:flex;align-items:center;gap:16px;">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(6,182,212,.1);display:flex;align-items:center;justify-content:center;">
+            <span class="material-symbols-rounded" style="color:var(--cyan);">analytics</span>
+          </div>
+          <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Avg Dice Score</div>
+               <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:#fff;">{{ avg_metrics.avg_dice|floatformat:4 }}</div></div>
+        </div>
+        <div class="card card-sm" style="display:flex;align-items:center;gap:16px;">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(139,92,246,.1);display:flex;align-items:center;justify-content:center;">
+            <span class="material-symbols-rounded" style="color:var(--violet);">area_chart</span>
+          </div>
+          <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Avg IoU Score</div>
+               <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:#fff;">{{ avg_metrics.avg_iou|floatformat:4 }}</div></div>
+        </div>
+        <div class="card card-sm" style="display:flex;align-items:center;gap:16px;">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;align-items:center;justify-content:center;">
+            <span class="material-symbols-rounded" style="color:var(--emerald);">verified</span>
+          </div>
+          <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Avg Accuracy</div>
+               <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:#fff;">{{ avg_metrics.avg_acc|floatformat:1 }}%</div></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- CHARTS ROW -->
+      <div class="grid-2" style="margin-bottom:24px;">
+        <div class="chart-card">
+          <div class="chart-title">Scans Over Time (Last 14 Days)</div>
+          <div class="chart-sub">Daily upload activity</div>
+          <canvas id="scansChart" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Severity Distribution</div>
+          <div class="chart-sub">Tumour severity breakdown</div>
+          <canvas id="severityChart" height="180"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:24px;">
+        <div class="chart-card">
+          <div class="chart-title">Scan Types</div>
+          <div class="chart-sub">MRI modality distribution</div>
+          <canvas id="scanTypeChart" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top Users by Scan Count</div>
+          <div class="chart-sub">Most active clinicians</div>
+          <canvas id="topUsersChart" height="180"></canvas>
+        </div>
+      </div>
+
+      <!-- RECENT SCANS -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+          <div style="font-size:15px;font-weight:700;color:#fff;">Recent Scans (All Users)</div>
+          <a href="{% url 'admin_scan_history' %}" class="btn btn-ghost btn-sm">View All →</a>
+        </div>
+        <table class="dt">
+          <thead><tr><th>Patient</th><th>Uploaded By</th><th>Type</th><th>Status</th><th>Result</th><th>Date</th><th></th></tr></thead>
+          <tbody>
+            {% for scan in recent_scans %}
+            <tr>
+              <td>
+                <div style="font-weight:600;">{{ scan.patient_name }}</div>
+                <div style="font-size:11px;color:var(--text3);">{{ scan.patient_id }}</div>
+              </td>
+              <td style="font-size:13px;color:var(--text2);">{{ scan.uploaded_by.get_full_name|default:scan.uploaded_by.username }}</td>
+              <td><span class="chip" style="font-size:11px;">{{ scan.scan_type }}</span></td>
+              <td><span class="badge {% if scan.status == 'completed' %}badge-green{% elif scan.status == 'failed' %}badge-red{% elif scan.status == 'processing' %}badge-amber{% else %}badge-slate{% endif %}">{{ scan.status }}</span></td>
+              <td>
+                {% if scan.result %}
+                  {% if scan.result.tumor_detected %}<span style="color:var(--rose);font-weight:700;font-size:12px;">⚠ Tumor</span>
+                  {% else %}<span style="color:var(--emerald);font-size:12px;">✓ Normal</span>{% endif %}
+                {% else %}—{% endif %}
+              </td>
+              <td style="font-size:12px;color:var(--text2);">{{ scan.upload_date|date:"M d, Y H:i" }}</td>
+              <td><a href="{% url 'analysis' scan.id %}" class="btn btn-ghost btn-xs">View</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3);">No scans yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+window.__bfy_scans_14={{ scans_14|safe }};
+window.__bfy_severity_data={{ severity_data|safe }};
+window.__bfy_scantype_data={{ scantype_data|safe }};
+window.__bfy_top_users=[{% for u in top_users %}{name:'{{ u.name }}',count:{{ u.count }}}{% if not forloop.last %},{% endif %}{% endfor %}];
+</script>
+<script src="{% static 'core/js/admin_dashboard.js' %}"></script>
+{% endblock %}

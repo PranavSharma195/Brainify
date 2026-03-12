@@ -1,0 +1,101 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Booking — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/booking.css' %}">{% endblock %}
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='booking' %}
+  <main class="main" style="overflow:hidden">
+    <div class="bk-wrap">
+      <div class="bk-hdr">
+        <div style="flex:1">
+          <div class="bk-title" id="bkTitle">Neuro Hospitals</div>
+          <div class="bk-sub">Click a hospital marker to view details, phone number, and get directions</div>
+        </div>
+        <select class="bk-country-sel" id="countrySel" onchange="switchCountry(this.value)">
+          <option value="nepal">🇳🇵 Nepal</option>
+          <option value="india">🇮🇳 India</option>
+          <option value="bangladesh">🇧🇩 Bangladesh</option>
+          <option value="srilanka">🇱🇰 Sri Lanka</option>
+          <option value="thailand">🇹🇭 Thailand</option>
+          <option value="malaysia">🇲🇾 Malaysia</option>
+          <option value="singapore">🇸🇬 Singapore</option>
+          <option value="southkorea">🇰🇷 South Korea</option>
+        </select>
+        <a href="{% url 'dashboard' %}" class="btn btn-ghost btn-sm">
+          <span class="material-symbols-rounded">arrow_back</span>Dashboard
+        </a>
+      </div>
+      <div class="bk-map">
+        <div id="booking-map"></div>
+        <div class="bk-badge">
+          <span class="material-symbols-rounded">local_hospital</span>
+          <span><span class="bk-badge-count" id="hospCount">0</span> hospitals</span>
+        </div>
+        <div class="bk-lsw" id="bkLsw">
+          <button class="bk-lsw-btn on" id="bk-street" onclick="bkSetLayer('street')"><span class="material-symbols-rounded">map</span>Street</button>
+          <button class="bk-lsw-btn" id="bk-sat" onclick="bkSetLayer('satellite')"><span class="material-symbols-rounded">satellite_alt</span>Satellite</button>
+        </div>
+        <div class="bk-route-bar" id="bkRouteBar">
+          <span class="material-symbols-rounded">navigation</span>
+          <span id="bkRouteInfo">Route loaded</span>
+          <a id="bkMapsLink" href="#" target="_blank" style="margin-left:8px;font-size:10.5px;color:var(--blue);font-weight:600;text-decoration:none">Open in Maps ↗</a>
+          <button class="bk-route-close" onclick="clearRoute()"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <!-- Side panel for selected hospital -->
+        <div class="bk-panel" id="bkPanel">
+          <div class="bk-panel-hdr">
+            <span class="material-symbols-rounded" style="font-size:22px;color:#EE5555;font-variation-settings:'FILL' 1">local_hospital</span>
+            <div style="flex:1">
+              <div class="bk-panel-name" id="panelName"></div>
+              <div class="bk-panel-type" id="panelType"></div>
+            </div>
+            <button class="bk-panel-close" onclick="closePanel()"><span class="material-symbols-rounded">close</span></button>
+          </div>
+          <div class="bk-panel-body">
+            <div class="bk-info-block">
+              <div class="bk-info-label">Address</div>
+              <div class="bk-info-row"><span class="material-symbols-rounded">location_on</span><span id="panelAddr"></span></div>
+            </div>
+            <div class="bk-info-block">
+              <div class="bk-info-label">Phone</div>
+              <div class="bk-info-row"><span class="material-symbols-rounded">call</span><span id="panelPhone"></span></div>
+            </div>
+            <div class="bk-info-block">
+              <div class="bk-info-label">Specialities</div>
+              <div class="bk-info-row"><span class="material-symbols-rounded">neurology</span><span id="panelSpec"></span></div>
+            </div>
+            <div class="bk-info-block">
+              <div class="bk-info-label">Hours</div>
+              <div class="bk-info-row"><span class="material-symbols-rounded">schedule</span><span id="panelHours"></span></div>
+            </div>
+          </div>
+          <div class="bk-panel-actions">
+            <button class="bk-act-btn primary" onclick="backToOverview()">
+              <span class="material-symbols-rounded">arrow_back</span>Back to Overview
+            </button>
+            <button class="bk-act-btn primary" id="panelRouteBtn" onclick="showRouteToSelected()">
+              <span class="material-symbols-rounded">directions</span>Show Route from My Location
+            </button>
+            <button class="bk-act-btn secondary" id="panelCallBtn" onclick="callHospital()">
+              <span class="material-symbols-rounded">call</span><span id="panelCallTxt">Call Hospital</span>
+            </button>
+            <a class="bk-act-btn secondary" id="panelOsmLink" href="#" target="_blank">
+              <span class="material-symbols-rounded">open_in_new</span>View on OpenStreetMap
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="{% static 'core/js/booking.js' %}"></script>
+{% endblock %}
+

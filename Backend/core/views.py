@@ -1214,3 +1214,8 @@ def admin_scans(request):
     if q: qs=qs.filter(Q(patient_name__icontains=q)|Q(patient_id__icontains=q)|Q(uploaded_by__username__icontains=q))
     if status: qs=qs.filter(status=status)
     return render(request,'core/admin_scans.html',{'scans':qs,'query':q,'status_filter':status})
+
+
+@login_required
+def booking_view(request):
+    return render(request, 'core/booking.html', {'active': 'booking'})

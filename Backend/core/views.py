@@ -1202,3 +1202,15 @@ def admin_analytics(request):
         'recent_logins':LoginHistory.objects.select_related('user').order_by('-login_time')[:15],
     }
     return render(request,'core/admin_analytics.html',ctx)
+
+@login_required
+def admin_scans(request):
+    if not _is_admin(request): return redirect('upload')
+    q=request.GET.get('q',''); status=request.GET.get('status',''); trash=request.GET.get('trash','')
+    if trash == '1':
+        qs = MRIScan.objects.filter(is_deleted=True).select_related('uploaded_by','result').order_by('-deleted_at')
+    else:
+        qs = MRIScan.objects.filter(is_deleted=False).select_related('uploaded_by','result').order_by('-upload_date')
+    if q: qs=qs.filter(Q(patient_name__icontains=q)|Q(patient_id__icontains=q)|Q(uploaded_by__username__icontains=q))
+    if status: qs=qs.filter(status=status)
+    return render(request,'core/admin_scans.html',{'scans':qs,'query':q,'status_filter':status})

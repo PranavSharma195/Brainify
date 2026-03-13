@@ -1219,3 +1219,59 @@ def admin_scans(request):
 @login_required
 def booking_view(request):
     return render(request, 'core/booking.html', {'active': 'booking'})
+
+@login_required
+def contact_view(request):
+    if request.method == 'POST':
+        sender_name = request.POST.get('sender_name', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        message_text = request.POST.get('message', '').strip()
+        msg_type = request.POST.get('msg_type', 'feedback').strip()
+
+        if not subject or not message_text:
+            messages.error(request, 'Please fill in subject and message.')
+            return render(request, 'core/contact.html', {'active': 'contact'})
+
+        # Send email to admin
+        from django.core.mail import send_mail
+        from django.conf import settings
+
+        type_labels = {
+            'feedback': '💬 Feedback',
+            'bug': '🐛 Bug Report',
+            'question': '❓ Question',
+            'feature': '✨ Feature Request',
+        }
+        type_label = type_labels.get(msg_type, msg_type.title())
+
+        email_subject = f"[Brainify {type_label}] {subject}"
+        email_body = f"""New message from Brainify platform:
+
+Type: {type_label}
+From: {sender_name}
+Email: {request.user.email}
+Username: {request.user.username}
+Subject: {subject}
+
+Message:
+{message_text}
+
+---
+Sent from Brainify Contact Form
+User ID: {request.user.id}
+"""
+        try:
+            send_mail(
+                subject=email_subject,
+                message=email_body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['pranavsharma5834@gmail.com'],
+                fail_silently=False,
+            )
+            messages.success(request, 'Message sent! We\'ll get back to you soon.')
+        except Exception as e:
+            messages.error(request, f'Could not send message: {str(e)[:80]}')
+
+        return render(request, 'core/contact.html', {'active': 'contact', 'success': True})
+
+    return render(request, 'core/contact.html', {'active': 'contact'})

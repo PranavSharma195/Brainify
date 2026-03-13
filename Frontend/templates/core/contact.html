@@ -1,0 +1,98 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Contact Us — Brainify{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/contact.css' %}">{% endblock %}
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='contact' %}
+  <main class="main" style="overflow:hidden">
+    <div class="cw">
+      <div class="map-s">
+        <div id="leaflet-map"></div>
+        <div class="map-pin">
+          <span class="material-symbols-rounded">location_on</span>
+          <div>
+            <div>Islington College</div>
+            <div class="map-pin-sub">Kamalpokhari, Kathmandu, Nepal</div>
+          </div>
+        </div>
+        <div class="layer-sw">
+          <button class="lsw-btn on" id="lsw-street" onclick="setLayer('street')"><span class="material-symbols-rounded">map</span>Street</button>
+          <button class="lsw-btn" id="lsw-sat" onclick="setLayer('satellite')"><span class="material-symbols-rounded">satellite_alt</span>Satellite</button>
+        </div>
+        <button class="loc-btn" id="locBtn" onclick="showRoute()">
+          <span class="material-symbols-rounded" id="locIco">my_location</span>
+          <span id="locTxt">Show route from my location</span>
+        </button>
+        <div class="loc-err" id="locErr"></div>
+        <div class="route-bar" id="routeBar">
+          <span class="material-symbols-rounded">navigation</span>
+          <span id="routeInfo">Route loaded</span>
+          <a id="mapsLink" href="#" target="_blank" style="margin-left:auto;font-size:10px;color:var(--blue);font-weight:600;text-decoration:none">Open in Maps ↗</a>
+        </div>
+      </div>
+      <div class="form-s">
+        <div class="cf">
+          <a href="{% url 'dashboard' %}" class="cf-back">
+            <span class="material-symbols-rounded">arrow_back</span>Back to Dashboard
+          </a>
+          <div class="cf-title">Get in touch</div>
+          <div class="cf-sub">Feedback, bugs, questions — we reply within 24 hours.</div>
+          {% if success %}
+          <div class="ok-b"><span class="material-symbols-rounded">check_circle</span>Sent! We'll reply to {{ request.user.email }} within 24h.</div>
+          {% endif %}
+          {% for msg in messages %}
+          <div class="{% if msg.tags == 'error' %}err-b{% else %}ok-b{% endif %}">
+            <span class="material-symbols-rounded">{% if msg.tags == 'error' %}error{% else %}check_circle{% endif %}</span>{{ msg }}
+          </div>
+          {% endfor %}
+          <div class="type-row">
+            <button type="button" class="chip on" data-v="feedback" onclick="pickType(this)">💬 Feedback</button>
+            <button type="button" class="chip" data-v="bug" onclick="pickType(this)">🐛 Bug report</button>
+            <button type="button" class="chip" data-v="question" onclick="pickType(this)">❓ Question</button>
+            <button type="button" class="chip" data-v="feature" onclick="pickType(this)">✨ Feature request</button>
+          </div>
+          <div class="cf-card">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="msg_type" id="msg_type" value="feedback">
+              <div class="fg2">
+                <label class="fl2">Your name</label>
+                <input class="fi2" type="text" name="sender_name" value="{{ request.user.get_full_name|default:request.user.username }}" required>
+              </div>
+              <div class="fg2">
+                <label class="fl2">Email <span style="font-size:9px;color:var(--green);font-weight:600;text-transform:none;letter-spacing:0;margin-left:3px">✓ verified</span></label>
+                <div style="position:relative">
+                  <input class="fi2" type="email" value="{{ request.user.email }}" readonly style="padding-right:32px">
+                  <span class="material-symbols-rounded" style="position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--green);font-variation-settings:'FILL' 1">verified</span>
+                </div>
+              </div>
+              <div class="fg2">
+                <label class="fl2">Subject</label>
+                <input class="fi2" type="text" name="subject" placeholder="Brief description" required>
+              </div>
+              <div class="fg2" style="margin-bottom:12px">
+                <label class="fl2">Message</label>
+                <textarea class="fi2" name="message" rows="5" placeholder="Tell us what's on your mind…" required style="resize:vertical;min-height:90px;line-height:1.65"></textarea>
+              </div>
+              <button type="submit" style="display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border-radius:8px;background:var(--blue2);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .13s">
+                <span class="material-symbols-rounded" style="font-size:15px;font-variation-settings:'FILL' 1">send</span>Send message
+              </button>
+            </form>
+          </div>
+          <div class="cf-info">
+            <div class="ci"><span class="material-symbols-rounded">school</span>Islington College, Kamalpokhari, Kathmandu, Nepal</div>
+            <div class="ci"><span class="material-symbols-rounded">schedule</span>Mon–Fri, 9 AM – 6 PM NPT</div>
+            <div class="ci"><span class="material-symbols-rounded">mail</span>pranavsharma5834@gmail.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'core/js/contact.js' %}"></script>
+{% endblock %}

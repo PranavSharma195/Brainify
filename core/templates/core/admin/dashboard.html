@@ -1,0 +1,201 @@
+{% extends 'core/base.html' %}
+{% block title %}Admin Dashboard — Brainify{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+{% endblock %}
+{% block extra_style %}
+.layout{display:flex;height:100vh;overflow:hidden;} .main{flex:1;overflow-y:auto;}
+.ph{padding:28px 32px 24px;}
+.pg{padding:0 32px;}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px;}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
+.cg3{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:24px;}
+.card-c{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;}
+.ch{font-size:13px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
+.tw{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:24px;}
+.section-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+@media(max-width:900px){.sg{grid-template-columns:repeat(2,1fr);}.cg,.cg3{grid-template-columns:1fr;}}
+{% endblock %}
+
+{% block content %}
+<div class="layout">
+  {% include 'core/_sidebar.html' with active='admin_dash' %}
+  <main class="main">
+    <div class="ph">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <h1 style="font-size:26px;font-weight:700;margin-bottom:4px;">Admin Dashboard</h1>
+          <p style="font-size:14px;color:var(--text2);">System-wide analytics and performance overview</p>
+        </div>
+        <div style="font-size:12px;color:var(--text3);">Last updated: just now</div>
+      </div>
+    </div>
+
+    <div class="pg">
+      <!-- Stats -->
+      <div class="sg">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(37,99,235,0.12);">
+            <span class="material-symbols-outlined icon-sm text-blue">group</span>
+          </div>
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value">{{ stats.total_users }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(124,58,237,0.12);">
+            <span class="material-symbols-outlined icon-sm" style="color:#a78bfa;">brain</span>
+          </div>
+          <div class="stat-label">Total Scans</div>
+          <div class="stat-value">{{ stats.total_scans }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(5,150,105,0.12);">
+            <span class="material-symbols-outlined icon-sm text-green">check_circle</span>
+          </div>
+          <div class="stat-label">Completed</div>
+          <div class="stat-value">{{ total_completed }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(220,38,38,0.12);">
+            <span class="material-symbols-outlined icon-sm text-red">warning</span>
+          </div>
+          <div class="stat-label">Tumors Found</div>
+          <div class="stat-value">{{ total_tumors }}</div>
+        </div>
+      </div>
+
+      <!-- Charts row 1 -->
+      <div class="cg">
+        <div class="card-c">
+          <div class="ch">
+            <span>Scans Per Day <span style="color:var(--text3);font-weight:400;font-size:11px;">(last 14 days)</span></span>
+          </div>
+          <canvas id="lineChart" height="140"></canvas>
+        </div>
+        <div class="card-c">
+          <div class="ch"><span>Severity Distribution</span></div>
+          <canvas id="pieChart" height="140"></canvas>
+        </div>
+      </div>
+
+      <!-- Charts row 2 -->
+      <div class="cg3">
+        <div class="card-c">
+          <div class="ch"><span>Classification Breakdown</span></div>
+          <canvas id="barChart" height="120"></canvas>
+        </div>
+        <div class="card-c">
+          <div class="ch"><span>Top Users</span></div>
+          {% for u in top_users %}
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div class="avatar">{{ u.first_name|slice:":1"|upper }}</div>
+            <div style="flex:1;min-width:0;">
+              <p style="font-size:13px;font-weight:600;color:#fff;" class="truncate">{{ u.get_full_name|default:u.username }}</p>
+              <div style="height:4px;background:var(--bg3);border-radius:99px;margin-top:4px;overflow:hidden;">
+                <div style="height:100%;background:var(--blue);border-radius:99px;width:{% widthratio u.scan_count top_users.0.scan_count 100 %}%;"></div>
+              </div>
+            </div>
+            <span style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--blue2);">{{ u.scan_count }}</span>
+          </div>
+          {% empty %}
+          <p style="font-size:13px;color:var(--text3);">No scan data yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Recent scans -->
+      <div style="margin-bottom:24px;">
+        <div class="section-title">
+          <span class="material-symbols-outlined icon-sm text-blue">biotech</span> Recent Scans
+          <a href="{% url 'admin_scans' %}" style="font-size:12px;color:var(--blue2);font-weight:600;margin-left:auto;">View all</a>
+        </div>
+        <div class="tw">
+          <table class="tbl">
+            <thead><tr><th>Patient</th><th>Uploaded By</th><th>Result</th><th>Severity</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for s in recent_scans %}
+            <tr>
+              <td><p style="font-weight:600;font-size:13px;">{{ s.patient_name }}</p><p style="font-size:11px;color:var(--text3);">{{ s.patient_id }}</p></td>
+              <td style="font-size:13px;">{{ s.uploaded_by.get_full_name|default:s.uploaded_by.username }}</td>
+              <td>{% if s.result %}{% if s.result.tumor_detected %}<span class="badge badge-red">Tumor</span>{% else %}<span class="badge badge-green">Normal</span>{% endif %}{% else %}<span style="color:var(--text3)">—</span>{% endif %}</td>
+              <td>{% if s.result %}<span class="badge {% if s.result.severity == 'normal' %}badge-green{% elif s.result.severity == 'mild' %}badge-cyan{% elif s.result.severity == 'moderate' %}badge-orange{% else %}badge-red{% endif %}">{{ s.result.severity|capfirst }}</span>{% else %}<span style="color:var(--text3)">—</span>{% endif %}</td>
+              <td><span class="badge {% if s.status == 'completed' %}badge-green{% elif s.status == 'processing' %}badge-orange{% else %}badge-red{% endif %}">{{ s.get_status_display }}</span></td>
+              <td style="font-size:12px;color:var(--text3);">{{ s.upload_date|date:"M d, Y H:i" }}</td>
+              <td>{% if s.status == 'completed' %}<a href="{% url 'analysis' s.id %}" class="btn btn-ghost btn-sm" style="padding:4px 8px;"><span class="material-symbols-outlined icon-xs">visibility</span></a>{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Login stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:32px;">
+        <div>
+          <div class="section-title">
+            <span class="material-symbols-outlined icon-sm text-blue">history</span> Recent Logins
+            <a href="{% url 'admin_login_history' %}" style="font-size:12px;color:var(--blue2);font-weight:600;margin-left:auto;">View all</a>
+          </div>
+          <div class="tw">
+            <table class="tbl">
+              <thead><tr><th>User</th><th>Status</th><th>Time</th></tr></thead>
+              <tbody>
+              {% for l in recent_logins %}
+              <tr>
+                <td style="font-size:13px;">{{ l.username_attempted|truncatechars:22 }}</td>
+                <td><span class="badge {% if l.login_status == 'success' %}badge-green{% else %}badge-red{% endif %}">{{ l.login_status|capfirst }}</span></td>
+                <td style="font-size:11px;color:var(--text3);">{{ l.login_time|timesince }} ago</td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-c">
+          <div class="ch"><span>Security Overview</span></div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.2);border-radius:10px;padding:14px 16px;">
+              <div><p style="font-size:12px;color:var(--text2);">Failed Logins Today</p></div>
+              <span style="font-size:28px;font-weight:700;color:#f87171;font-family:var(--mono);">{{ failed_today }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:10px;padding:14px 16px;">
+              <div><p style="font-size:12px;color:var(--text2);">Total Reports Generated</p></div>
+              <span style="font-size:28px;font-weight:700;color:var(--blue2);font-family:var(--mono);">{{ stats.total_reports }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.2);border-radius:10px;padding:14px 16px;">
+              <div><p style="font-size:12px;color:var(--text2);">Failed Scans</p></div>
+              <span style="font-size:28px;font-weight:700;color:#f87171;font-family:var(--mono);">{{ total_failed }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const COLORS = ['#2563eb','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777'];
+const ACOLORS = COLORS.map(c=>c+'33');
+
+// Line chart
+new Chart(document.getElementById('lineChart'),{type:'line',data:{
+  labels:{{ daily_labels|safe }},
+  datasets:[{label:'Scans',data:{{ daily_values|safe }},borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.08)',tension:0.4,fill:true,pointBackgroundColor:'#2563eb',pointRadius:4,borderWidth:2}]
+},options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10},stepSize:1},beginAtZero:true}}}});
+
+// Pie chart
+const sevL={{ sev_labels|safe }}, sevV={{ sev_values|safe }};
+new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{
+  labels:sevL,
+  datasets:[{data:sevV,backgroundColor:COLORS,borderColor:'#060d1a',borderWidth:3}]
+},options:{plugins:{legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:12}}},cutout:'62%'}});
+
+// Bar chart
+const clL={{ cl_labels|safe }}, clV={{ cl_values|safe }};
+new Chart(document.getElementById('barChart'),{type:'bar',data:{
+  labels:clL,
+  datasets:[{label:'Cases',data:clV,backgroundColor:COLORS,borderRadius:6}]
+},options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#64748b',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10},stepSize:1},beginAtZero:true}}}});
+</script>
+{% endblock %}

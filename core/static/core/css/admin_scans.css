@@ -1,0 +1,112 @@
+/* ── PAGE HEADER BANNER ── */
+.scans-header{
+  background:linear-gradient(135deg,rgba(59,130,246,.08) 0%,rgba(34,211,238,.04) 100%);
+  border-bottom:1px solid var(--line);
+  padding:28px 32px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.scans-title{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-.4px}
+.scans-sub{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
+.record-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(59,130,246,.12);
+  border:1px solid rgba(59,130,246,.22);border-radius:20px;padding:2px 10px;
+  font-size:11px;font-weight:700;color:var(--blue);font-family:var(--mono)}
+
+/* ── TOOLBAR ── */
+.scans-toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:18px 32px 0;
+}
+.scan-search-wrap{
+  flex:1;min-width:240px;position:relative;max-width:420px;
+}
+.scan-search-wrap .scan-search-ico{
+  position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  color:var(--dim);pointer-events:none;
+}
+.scan-search-wrap .scan-search-ico .material-symbols-rounded{font-size:16px}
+.scan-search-inp{
+  width:100%;background:var(--card2);border:1.5px solid var(--line);
+  border-radius:10px;padding:9px 12px 9px 38px;color:var(--white);
+  font-size:13px;font-family:var(--font);outline:none;transition:all .15s;
+}
+.scan-search-inp:focus{border-color:var(--blue);background:var(--card3);box-shadow:0 0 0 3px var(--accent-s)}
+.scan-search-inp::placeholder{color:var(--dim)}
+[data-theme="light"] .scan-search-inp{color:#1E2880;background:#EEF2FF}
+
+/* filter tabs */
+.filter-tabs{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.ftab{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;
+  font-family:var(--font);text-decoration:none;line-height:1.4;white-space:nowrap}
+.ftab:hover{color:var(--bright)}
+.ftab.on{background:var(--card);color:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.25);border:1px solid var(--line2)}
+[data-theme="light"] .ftab.on{background:#fff;color:#0C1460;box-shadow:0 2px 6px rgba(22,56,216,.1)}
+
+/* ── TABLE CARD ── */
+.scans-table-card{
+  margin:16px 32px 32px;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+}
+[data-theme="light"] .scans-table-card{box-shadow:0 2px 16px rgba(22,56,216,.07)}
+.scans-table{width:100%;border-collapse:collapse}
+.scans-table thead tr{background:linear-gradient(90deg,var(--card2),var(--card3));border-bottom:1px solid var(--line2)}
+.scans-table th{
+  padding:11px 16px;text-align:left;font-size:9.5px;font-weight:700;
+  color:var(--muted);letter-spacing:1.1px;text-transform:uppercase;white-space:nowrap;
+}
+[data-theme="light"] .scans-table th{color:var(--soft)}
+.scans-table tbody tr{border-bottom:1px solid var(--line);transition:background .12s}
+.scans-table tbody tr:last-child{border-bottom:none}
+.scans-table tbody tr:hover{background:rgba(59,130,246,.04)}
+[data-theme="light"] .scans-table tbody tr:hover{background:rgba(22,56,216,.04)}
+.scans-table td{padding:13px 16px;font-size:13px;vertical-align:middle}
+
+/* patient avatar */
+.pt-av{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;color:#fff;
+  background:linear-gradient(135deg,var(--accent2),var(--accent3))}
+
+/* uploader avatar */
+.up-av{width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:800;color:#fff;
+  background:linear-gradient(135deg,#475080,#2E3558)}
+
+/* scan type badge */
+.type-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;
+  font-size:10.5px;font-weight:800;font-family:var(--mono);letter-spacing:.5px;
+  background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+
+/* priority */
+.pri-urgent{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;
+  font-size:11px;font-weight:700;background:rgba(240,104,104,.1);color:var(--red);border:1px solid rgba(240,104,104,.2)}
+.pri-high{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;
+  font-size:11px;font-weight:700;background:rgba(240,156,56,.1);color:var(--amber);border:1px solid rgba(240,156,56,.2)}
+.pri-normal{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;
+  font-size:11px;font-weight:600;background:var(--card3);color:var(--soft);border:1px solid var(--line2)}
+
+/* finding */
+.finding-tumor{display:flex;align-items:center;gap:5px}
+.finding-tumor .fi-icon{width:22px;height:22px;border-radius:6px;background:rgba(240,104,104,.12);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.finding-tumor .fi-icon .material-symbols-rounded{font-size:13px;color:var(--red)}
+.finding-clear{display:flex;align-items:center;gap:5px}
+.finding-clear .fi-icon{width:22px;height:22px;border-radius:6px;background:rgba(40,223,160,.1);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.finding-clear .fi-icon .material-symbols-rounded{font-size:13px;color:var(--green)}
+
+/* confidence bar */
+.conf-bar-wrap{width:80px}
+.conf-val{font-size:12.5px;font-weight:700;font-family:var(--mono);color:var(--blue)}
+.conf-bar{height:3px;background:var(--line2);border-radius:99px;margin-top:4px;overflow:hidden}
+.conf-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue2),var(--teal))}
+
+/* action btn */
+.row-action{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:var(--card2);border:1px solid var(--line);color:var(--soft);text-decoration:none;transition:all .15s}
+.row-action:hover{background:var(--accent-s);border-color:var(--accent-l);color:var(--blue)}
+.row-action .material-symbols-rounded{font-size:14px}
+
+/* empty */
+.scan-empty{padding:60px 20px;text-align:center}
+.scan-empty .material-symbols-rounded{font-size:44px;color:var(--line2);display:block;margin-bottom:14px}
+.scan-empty p{font-size:14px;color:var(--muted)}

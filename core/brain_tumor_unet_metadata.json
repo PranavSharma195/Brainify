@@ -1,0 +1,16 @@
+{
+  "version": "V4",
+  "img_size": 128,
+  "num_classes": 3,
+  "class_names": [
+    "No Tumor",
+    "LGG (Low-Grade)",
+    "HGG (High-Grade)"
+  ],
+  "total_params": 8920424,
+  "epochs_trained": 30,
+  "best_val_dice": 0.8787,
+  "dataset": "BraTS 2020",
+  "batch_size": 16,
+  "learning_rate": 0.002
+}

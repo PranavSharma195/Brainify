@@ -1,0 +1,88 @@
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="sb-brand">
+      <div class="sb-icon">B</div>
+      <div>
+        <div class="sb-name">Brainify</div>
+        <div class="sb-ver">Radiology Platform</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-body">
+    <div class="sb-section">
+      <div class="sb-label">Workspace</div>
+      <a href="{% url 'dashboard' %}" class="nav-item {% if a == 'dash' or active == 'dash' %}on{% endif %}">
+        <span class="material-symbols-rounded">grid_view</span>Dashboard
+      </a>
+      <a href="{% url 'upload' %}" class="nav-item {% if a == 'upload' or active == 'upload' %}on{% endif %}">
+        <span class="material-symbols-rounded">cloud_upload</span>Upload MRI
+      </a>
+      <a href="{% url 'cases' %}" class="nav-item {% if a == 'cases' or active == 'cases' %}on{% endif %}">
+        <span class="material-symbols-rounded">folder_shared</span>My Cases
+      </a>
+      <a href="{% url 'chatbot' %}" class="nav-item {% if a == 'chatbot' or active == 'chatbot' %}on{% endif %}">
+        <span class="material-symbols-rounded">smart_toy</span>AI Assistant
+      </a>
+      <a href="{% url 'news' %}" class="nav-item {% if a == 'news' or active == 'news' %}on{% endif %}" style="position:relative">
+        <span class="material-symbols-rounded">newspaper</span>Brainify News
+        <span id="sb-news-dot" style="display:none;width:5px;height:5px;border-radius:50%;background:var(--red);position:absolute;right:10px;top:50%;transform:translateY(-50%)"></span>
+      </a>
+      <a href="{% url 'booking' %}" class="nav-item {% if a == 'booking' or active == 'booking' %}on{% endif %}">
+        <span class="material-symbols-rounded">local_hospital</span>Booking
+      </a>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Account</div>
+      <a href="{% url 'profile' %}" class="nav-item {% if a == 'profile' or active == 'profile' %}on{% endif %}">
+        <span class="material-symbols-rounded">manage_accounts</span>Profile
+      </a>
+      <a href="{% url 'contact' %}" class="nav-item {% if a == 'contact' or active == 'contact' %}on{% endif %}">
+        <span class="material-symbols-rounded">contact_support</span>Contact Us
+      </a>
+    </div>
+
+    {% if user.is_staff or user.profile.role == 'admin' %}
+    <div class="sb-section">
+      <div class="sb-label">Admin</div>
+      <a href="{% url 'admin_analytics' %}" class="nav-item {% if a == 'analytics' or active == 'analytics' %}on{% endif %}">
+        <span class="material-symbols-rounded">bar_chart_4_bars</span>Analytics
+      </a>
+      <a href="{% url 'admin_scans' %}" class="nav-item {% if a == 'scans' or active == 'scans' %}on{% endif %}">
+        <span class="material-symbols-rounded">image_search</span>All Scans
+      </a>
+      <a href="{% url 'user_management' %}" class="nav-item {% if a == 'users' or active == 'users' %}on{% endif %}">
+        <span class="material-symbols-rounded">group</span>Users
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="sb-foot">
+    <a href="{% url 'profile' %}" class="user-card">
+      {% if user.profile.avatar_b64 %}
+      <div class="ua" style="padding:0;overflow:hidden">
+        <img src="{{ user.profile.avatar_b64 }}" alt="" style="width:26px;height:26px;object-fit:cover;display:block;border-radius:6px">
+      </div>
+      {% else %}
+      <div class="ua">{{ user.first_name|slice:":1"|upper }}{% if not user.first_name %}{{ user.username|slice:":1"|upper }}{% endif %}</div>
+      {% endif %}
+      <div style="flex:1;min-width:0">
+        <div class="u-n cut">{{ user.get_full_name|default:user.username }}</div>
+        <div class="u-r">{% if user.profile %}{{ user.profile.role|capfirst }}{% else %}User{% endif %}</div>
+      </div>
+      <span class="material-symbols-rounded" style="font-size:14px;color:var(--dim)">chevron_right</span>
+    </a>
+    <div class="theme-row">
+      <span class="theme-label"><span class="material-symbols-rounded">contrast</span>Theme</span>
+      <div class="theme-pill">
+        <div class="theme-opt active" data-t="dark"><span class="material-symbols-rounded">dark_mode</span></div>
+        <div class="theme-opt" data-t="light"><span class="material-symbols-rounded">light_mode</span></div>
+      </div>
+    </div>
+    <a href="{% url 'logout' %}" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;font-size:11.5px;color:var(--muted)">
+      <span class="material-symbols-rounded" style="font-size:13px">logout</span>Sign out
+    </a>
+  </div>
+</aside>

@@ -1,0 +1,178 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}All MRI Scans — Admin{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/admin_scans.css' %}">{% endblock %}
+
+{% block content %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with active='scans' %}
+  <main class="main">
+
+    <!-- ── HEADER ── -->
+    <div class="scans-header">
+      <div>
+        <div class="scans-title">All MRI Scans</div>
+        <div class="scans-sub">
+          <span class="material-symbols-rounded" style="font-size:14px">dataset</span>
+          Complete scan history across all users
+          <span class="record-pill">{{ scans|length }} record{{ scans|length|pluralize }}</span>
+        </div>
+      </div>
+      <a href="{% url 'admin_analytics' %}" class="btn btn-ghost btn-sm">
+        <span class="material-symbols-rounded">bar_chart_4_bars</span> Analytics
+      </a>
+    </div>
+
+    <!-- ── TOOLBAR ── -->
+    <form method="get" class="scans-toolbar">
+      <div class="scan-search-wrap">
+        <span class="scan-search-ico"><span class="material-symbols-rounded">search</span></span>
+        <input class="scan-search-inp" name="q" value="{{ query }}" placeholder="Search patient name, ID, or user…">
+      </div>
+      <div class="filter-tabs">
+        <a href="?status=" class="ftab {% if not status_filter and not request.GET.trash %}on{% endif %}">All</a>
+        <a href="?status=completed" class="ftab {% if status_filter == 'completed' %}on{% endif %}">Completed</a>
+        <a href="?status=processing" class="ftab {% if status_filter == 'processing' %}on{% endif %}">Processing</a>
+        <a href="?status=failed" class="ftab {% if status_filter == 'failed' %}on{% endif %}">Failed</a>
+        <a href="?trash=1" class="ftab {% if request.GET.trash %}on{% endif %}"><span class="material-symbols-rounded" style="font-size:15px;vertical-align:-2px">delete</span> Trash</a>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">
+        <span class="material-symbols-rounded">tune</span> Filter
+      </button>
+    </form>
+
+    <!-- ── TABLE ── -->
+    <div class="scans-table-card">
+      <table class="scans-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Uploaded By</th>
+            <th>Type</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Finding</th>
+            <th>Confidence</th>
+            <th>Scan Date</th>
+            <th>Processed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for scan in scans %}
+        <tr>
+          <!-- Patient -->
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="pt-av">{{ scan.patient_name|slice:":1"|upper }}</div>
+              <div>
+                <div style="font-weight:700;color:var(--white);font-size:13px">{{ scan.patient_name }}</div>
+                <div style="font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:1px">{{ scan.patient_id }}</div>
+                {% if scan.patient_age %}
+                <div style="font-size:10.5px;color:var(--dim);margin-top:1px">{{ scan.patient_age }}y{% if scan.patient_gender %} · {{ scan.patient_gender }}{% endif %}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <!-- Uploader -->
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="up-av">{{ scan.uploaded_by.first_name|slice:":1"|upper }}{% if not scan.uploaded_by.first_name %}{{ scan.uploaded_by.username|slice:":1"|upper }}{% endif %}</div>
+              <div>
+                <div style="font-size:12.5px;font-weight:600;color:var(--bright)">{{ scan.uploaded_by.get_full_name|default:scan.uploaded_by.username }}</div>
+                <div style="font-size:10.5px;color:var(--muted)">{{ scan.uploaded_by.email }}</div>
+              </div>
+            </div>
+          </td>
+          <!-- Type -->
+          <td><span class="type-chip">{{ scan.scan_type }}</span></td>
+          <!-- Priority -->
+          <td>
+            {% if scan.priority == 'urgent' %}
+              <span class="pri-urgent"><span class="material-symbols-rounded" style="font-size:12px">emergency</span>Urgent</span>
+            {% elif scan.priority == 'high' %}
+              <span class="pri-high"><span class="material-symbols-rounded" style="font-size:12px">priority_high</span>High</span>
+            {% else %}
+              <span class="pri-normal"><span class="material-symbols-rounded" style="font-size:12px">remove</span>Normal</span>
+            {% endif %}
+          </td>
+          <!-- Status -->
+          <td>
+            {% if scan.status == 'completed' %}<span class="badge badge-green" style="gap:4px"><span class="material-symbols-rounded" style="font-size:11px;font-variation-settings:'FILL' 1">check_circle</span>Completed</span>
+            {% elif scan.status == 'processing' %}<span class="badge badge-amber" style="gap:4px"><span class="material-symbols-rounded" style="font-size:11px">sync</span>Processing</span>
+            {% elif scan.status == 'failed' %}<span class="badge badge-red" style="gap:4px"><span class="material-symbols-rounded" style="font-size:11px;font-variation-settings:'FILL' 1">error</span>Failed</span>
+            {% else %}<span class="badge badge-slate">Pending</span>{% endif %}
+          </td>
+          <!-- Finding -->
+          <td>
+            {% if scan.result %}
+              {% if scan.result.tumor_detected %}
+                <div class="finding-tumor">
+                  <div class="fi-icon"><span class="material-symbols-rounded" style="font-variation-settings:'FILL' 1">emergency</span></div>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:var(--red)">Tumor</div>
+                    <div style="font-size:10.5px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ scan.result.classification }}</div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="finding-clear">
+                  <div class="fi-icon"><span class="material-symbols-rounded" style="font-variation-settings:'FILL' 1">check_circle</span></div>
+                  <div style="font-size:12px;font-weight:700;color:var(--green)">Clear</div>
+                </div>
+              {% endif %}
+            {% else %}
+              <span style="color:var(--dim);font-size:13px">—</span>
+            {% endif %}
+          </td>
+          <!-- Confidence -->
+          <td>
+            {% if scan.result %}
+              <div class="conf-bar-wrap">
+                <div class="conf-val">{{ scan.result.confidence_score|floatformat:1 }}%</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px">Dice {{ scan.result.dice_score|floatformat:3 }}</div>
+                <div class="conf-bar"><div class="conf-fill" style="width:{{ scan.result.confidence_score|floatformat:0 }}%"></div></div>
+              </div>
+            {% else %}<span style="color:var(--dim)">—</span>{% endif %}
+          </td>
+          <!-- Scan Date -->
+          <td>
+            <div style="font-size:12.5px;color:var(--bright)">{{ scan.upload_date|date:"M d, Y" }}</div>
+            <div style="font-size:10.5px;color:var(--muted);font-family:var(--mono)">{{ scan.upload_date|time:"H:i" }} UTC</div>
+          </td>
+          <!-- Processed -->
+          <td>
+            {% if scan.processed_at %}
+              <div style="font-size:12.5px;color:var(--bright)">{{ scan.processed_at|date:"M d, Y" }}</div>
+              <div style="font-size:10.5px;color:var(--muted);font-family:var(--mono)">{{ scan.processed_at|time:"H:i" }}</div>
+            {% else %}
+              <span style="color:var(--dim)">—</span>
+            {% endif %}
+          </td>
+          <!-- Action -->
+          <td style="display:flex;gap:8px;align-items:center">
+            <a href="{% url 'analysis' scan.id %}" class="row-action" title="View Analysis">
+              <span class="material-symbols-rounded">open_in_new</span>
+            </a>
+            <form method="post" action="{% url 'admin_delete_scan' scan.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="row-action row-action-red" title="Permanently Delete" onclick="return confirm('Permanently delete this scan? This cannot be undone!')">
+                <span class="material-symbols-rounded">delete_forever</span>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10">
+          <div class="scan-empty">
+            <span class="material-symbols-rounded">image_search</span>
+            <p>No scans found{% if query %} matching "<strong>{{ query }}</strong>"{% endif %}</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+{% endblock %}

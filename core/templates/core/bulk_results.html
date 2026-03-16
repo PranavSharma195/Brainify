@@ -1,0 +1,634 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Bulk Analysis Results — Brainify{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'core/css/analysis.css' %}">
+<style>
+.bulk-shell {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.bulk-header {
+  padding: 16px 24px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bulk-count-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--blue) 0%, #38bdf8 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(43, 108, 238, 0.2);
+  color: white;
+}
+
+.bulk-count-text {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bulk-nav-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.bulk-nav-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--line);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-dot:hover {
+  background: var(--muted);
+  transform: scale(1.3);
+}
+
+.nav-dot.active {
+  background: var(--blue);
+  width: 32px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 4px rgba(43, 108, 238, 0.15);
+}
+
+.download-section {
+  padding: 24px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+}
+
+.download-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.download-card {
+  padding: 20px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.download-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(43, 108, 238, 0.2);
+}
+
+.download-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--as);
+  border: 1px solid var(--al);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: all 0.3s;
+}
+
+.download-card:hover .download-icon {
+  background: var(--blue);
+  transform: scale(1.1);
+}
+
+.download-icon .material-symbols-rounded {
+  font-size: 28px;
+  color: var(--blue);
+  transition: color 0.3s;
+}
+
+.download-card:hover .download-icon .material-symbols-rounded {
+  color: white;
+}
+
+.download-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.download-card-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bulk-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.patient-result {
+  display: none;
+}
+
+.patient-result.active {
+  display: block;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.patient-header-card {
+  background: linear-gradient(135deg, var(--blue) 0%, #38bdf8 100%);
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(43, 108, 238, 0.3);
+}
+
+.patient-header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.patient-number-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  border: 3px solid rgba(255,255,255,0.3);
+  flex-shrink: 0;
+}
+
+.patient-name-large {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.patient-meta-large {
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+  display: flex;
+  gap: 12px;
+}
+
+/* Image viewer tabs (like single upload) */
+.img-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.img-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.img-tab:hover {
+  background: var(--card2);
+  color: var(--white);
+}
+
+.img-tab.active {
+  background: var(--blue);
+  color: white;
+}
+
+.img-content {
+  display: none;
+}
+
+.img-content.active {
+  display: block;
+}
+
+.viz-img-large {
+  width: 100%;
+  border-radius: 12px;
+  background: #000;
+}
+
+@media (max-width: 768px) {
+  .download-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="bulk-shell">
+  
+  <div class="bulk-header">
+    <div style="display:flex;align-items:center;gap:16px">
+      <a href="{% url 'upload' %}" class="btn btn-ghost btn-sm">
+        <span class="material-symbols-rounded">arrow_back</span>
+        Back to Upload
+      </a>
+      <div class="bulk-count-badge">
+        <span class="material-symbols-rounded" style="font-size:20px">folder_open</span>
+        <span class="bulk-count-text">{{ scans|length }} Patient{{ scans|length|pluralize }} Analyzed</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bulk-nav-sticky">
+    <button class="btn btn-ghost btn-sm" id="prev-btn" onclick="prevPage()">
+      <span class="material-symbols-rounded">chevron_left</span>
+      Previous
+    </button>
+    
+    <div class="bulk-nav-dots" id="nav-dots">
+      {% for scan in scans %}
+      <div class="nav-dot {% if forloop.first %}active{% endif %}" 
+           data-page="{{ forloop.counter }}" 
+           onclick="goToPage({{ forloop.counter }})"></div>
+      {% endfor %}
+    </div>
+    
+    <button class="btn btn-ghost btn-sm" id="next-btn" onclick="nextPage()">
+      Next
+      <span class="material-symbols-rounded">chevron_right</span>
+    </button>
+  </div>
+
+  <div class="download-section">
+    <div class="download-title">
+      <span class="material-symbols-rounded">download</span>
+      Download Reports
+    </div>
+    <div class="download-grid">
+      <div class="download-card" onclick="downloadCurrent()">
+        <div class="download-icon">
+          <span class="material-symbols-rounded">description</span>
+        </div>
+        <div class="download-card-title">Current Report</div>
+        <div class="download-card-desc">Download this patient's PDF</div>
+      </div>
+      
+      <div class="download-card" onclick="downloadAllSeparate()">
+        <div class="download-icon">
+          <span class="material-symbols-rounded">file_copy</span>
+        </div>
+        <div class="download-card-title">All Separate PDFs</div>
+        <div class="download-card-desc">{{ scans|length }} individual files</div>
+      </div>
+      
+      <div class="download-card" onclick="downloadAsZip()">
+        <div class="download-icon">
+          <span class="material-symbols-rounded">folder_zip</span>
+        </div>
+        <div class="download-card-title">Download as ZIP</div>
+        <div class="download-card-desc">All reports in one archive</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bulk-content">
+    {% for scan in scans %}
+    <div class="patient-result {% if forloop.first %}active{% endif %}" 
+         id="patient-{{ forloop.counter }}"
+         data-page="{{ forloop.counter }}"
+         data-scan-id="{{ scan.id }}">
+      
+      <div class="patient-header-card">
+        <div class="patient-header-content">
+          <div class="patient-number-circle">{{ forloop.counter }}</div>
+          <div>
+            <div class="patient-name-large">{{ scan.patient_name }}</div>
+            <div class="patient-meta-large">
+              <span>{{ scan.patient_id }}</span>
+              {% if scan.patient_age %}<span>Age {{ scan.patient_age }}y</span>{% endif %}
+              {% if scan.patient_gender %}<span>{{ scan.patient_gender }}</span>{% endif %}
+              <span>{{ scan.get_scan_type_display }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if scan.result %}
+      <div class="split-view" style="display:grid;grid-template-columns:1fr 400px;gap:20px">
+        
+        <!-- Left: Image Viewer (like single upload) -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:16px 20px;background:var(--card2);border-bottom:1px solid var(--line)">
+            <div class="img-tabs" id="tabs-{{ forloop.counter }}">
+              <button class="img-tab active" onclick="switchTab({{ forloop.counter }}, 'overlay')">
+                <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle">layers</span>
+                Overlay
+              </button>
+              <button class="img-tab" onclick="switchTab({{ forloop.counter }}, 'original')">
+                <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle">image</span>
+                Original
+              </button>
+              <button class="img-tab" onclick="switchTab({{ forloop.counter }}, 'mask')">
+                <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle">gradient</span>
+                Mask
+              </button>
+              <button class="img-tab" onclick="switchTab({{ forloop.counter }}, 'comparison')">
+                <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle">compare</span>
+                Comparison
+              </button>
+              <button class="img-tab" onclick="switchTab({{ forloop.counter }}, 'heatmap')">
+                <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle">thermostat</span>
+                Heatmap
+              </button>
+            </div>
+          </div>
+          <div style="padding:20px;background:#000">
+            <div id="img-overlay-{{ forloop.counter }}" class="img-content active">
+              {% if scan.result.overlay_b64 %}
+              <img src="data:image/png;base64,{{ scan.result.overlay_b64 }}" class="viz-img-large" alt="Overlay">
+              {% endif %}
+            </div>
+            <div id="img-original-{{ forloop.counter }}" class="img-content">
+              {% if scan.result.original_b64 %}
+              <img src="data:image/png;base64,{{ scan.result.original_b64 }}" class="viz-img-large" alt="Original">
+              {% endif %}
+            </div>
+            <div id="img-mask-{{ forloop.counter }}" class="img-content">
+              {% if scan.result.segmented_b64 %}
+              <img src="data:image/png;base64,{{ scan.result.segmented_b64 }}" class="viz-img-large" alt="Mask">
+              {% endif %}
+            </div>
+            <div id="img-comparison-{{ forloop.counter }}" class="img-content">
+              {% if scan.result.comparison_b64 %}
+              <img src="data:image/png;base64,{{ scan.result.comparison_b64 }}" class="viz-img-large" alt="Comparison">
+              {% endif %}
+            </div>
+            <div id="img-heatmap-{{ forloop.counter }}" class="img-content">
+              {% if scan.result.heatmap_b64 %}
+              <img src="data:image/png;base64,{{ scan.result.heatmap_b64 }}" class="viz-img-large" alt="Heatmap">
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Detection Summary (like single upload) -->
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">
+              <span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle;margin-right:4px">analytics</span>
+              Tumour Detection
+            </div>
+            
+            {% if scan.result.tumor_detected %}
+            <div style="padding:16px;background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.3);border-radius:12px;margin-bottom:16px">
+              <div style="font-size:15px;font-weight:700;color:var(--red,#EF4444);margin-bottom:4px">
+                <span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;margin-right:6px">warning</span>
+                Tumor Detected
+              </div>
+              <div style="font-size:12px;color:var(--muted)">Confidence: {{ scan.result.confidence_score|floatformat:1 }}%</div>
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
+                <span style="font-size:12px;color:var(--muted);font-weight:600">Classification</span>
+                <span style="font-size:12px;color:var(--white);font-weight:600">{{ scan.result.classification|default:"Analyzing..." }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
+                <span style="font-size:12px;color:var(--muted);font-weight:600">Severity</span>
+                <span style="font-size:12px;color:var(--white);font-weight:600">{{ scan.result.get_severity_display }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
+                <span style="font-size:12px;color:var(--muted);font-weight:600">Location</span>
+                <span style="font-size:12px;color:var(--white);font-weight:600">{{ scan.result.tumor_location|default:"Not specified" }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0">
+                <span style="font-size:12px;color:var(--muted);font-weight:600">Area</span>
+                <span style="font-size:12px;color:var(--white);font-weight:600">{{ scan.result.tumour_area|floatformat:2 }} cm²</span>
+              </div>
+            </div>
+            
+            {% else %}
+            <div style="padding:16px;background:rgba(16,185,129,0.08);border:2px solid rgba(16,185,129,0.3);border-radius:12px">
+              <div style="font-size:15px;font-weight:700;color:var(--green,#10B981);margin-bottom:4px">
+                <span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;margin-right:6px">check_circle</span>
+                No Significant Abnormality Detected
+              </div>
+              <div style="font-size:12px;color:var(--muted)">Confidence: {{ scan.result.confidence_score|floatformat:1 }}%</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Performance Metrics -->
+          <div class="card">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">
+              <span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle;margin-right:4px">speed</span>
+              Performance Metrics
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px">{{ scan.result.dice_score|floatformat:4 }}</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Dice Score</div>
+              </div>
+              <div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px">{{ scan.result.iou_score|floatformat:4 }}</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">IoU Score</div>
+              </div>
+              <div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px">{{ scan.result.accuracy|floatformat:1 }}%</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Accuracy</div>
+              </div>
+              <div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px">{{ scan.result.precision|floatformat:4 }}</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Precision</div>
+              </div>
+              <div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px">{{ scan.result.recall|floatformat:4 }}</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Recall</div>
+              </div>
+              <div style="background:var(--card2);padding:14px;border-radius:10px;text-align:center">
+                <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px">{{ scan.result.f1_score|floatformat:4 }}</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">F1 Score</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:60px">
+        <span class="material-symbols-rounded" style="font-size:64px;color:var(--muted)">hourglass_empty</span>
+        <div style="font-size:16px;font-weight:700;color:var(--white);margin-top:16px">Processing scan...</div>
+      </div>
+      {% endif %}
+      
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+var currentPage = 1;
+var totalPages = {{ scans|length }};
+var scanIds = {{ scan_ids|safe }};
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  
+  var results = document.querySelectorAll('.patient-result');
+  for (var i = 0; i < results.length; i++) {
+    results[i].classList.remove('active');
+  }
+  
+  var targetResult = document.getElementById('patient-' + page);
+  if (targetResult) {
+    targetResult.classList.add('active');
+  }
+  
+  var dots = document.querySelectorAll('.nav-dot');
+  for (var i = 0; i < dots.length; i++) {
+    var dotPage = parseInt(dots[i].getAttribute('data-page'));
+    if (dotPage === page) {
+      dots[i].classList.add('active');
+    } else {
+      dots[i].classList.remove('active');
+    }
+  }
+  
+  var prevBtn = document.getElementById('prev-btn');
+  var nextBtn = document.getElementById('next-btn');
+  
+  if (prevBtn) prevBtn.disabled = (page === 1);
+  if (nextBtn) nextBtn.disabled = (page === totalPages);
+  
+  document.querySelector('.bulk-content').scrollTop = 0;
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    goToPage(currentPage - 1);
+  }
+}
+
+function nextPage() {
+  if (currentPage < totalPages) {
+    goToPage(currentPage + 1);
+  }
+}
+
+function downloadCurrent() {
+  var scanId = scanIds[currentPage - 1];
+  if (scanId) {
+    window.location.href = '/analysis/' + scanId + '/download/';
+  }
+}
+
+function downloadAllSeparate() {
+  for (var i = 0; i < scanIds.length; i++) {
+    (function(id, index) {
+      setTimeout(function() {
+        window.open('/analysis/' + id + '/download/', '_blank');
+      }, index * 500);
+    })(scanIds[i], i);
+  }
+}
+
+function downloadAsZip() {
+  window.location.href = '/bulk-download-zip/?scans=' + scanIds.join(',');
+}
+
+function switchTab(patientNum, tabName) {
+  var tabsContainer = document.getElementById('tabs-' + patientNum);
+  if (!tabsContainer) return;
+  
+  var tabs = tabsContainer.querySelectorAll('.img-tab');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.remove('active');
+  }
+  
+  var clickedTabs = tabsContainer.querySelectorAll('.img-tab');
+  for (var i = 0; i < clickedTabs.length; i++) {
+    var btn = clickedTabs[i];
+    var btnText = btn.textContent.toLowerCase();
+    if (btnText.indexOf(tabName) !== -1) {
+      btn.classList.add('active');
+      break;
+    }
+  }
+  
+  var contentDivs = document.querySelectorAll('[id^="img-"][id$="-' + patientNum + '"]');
+  for (var i = 0; i < contentDivs.length; i++) {
+    contentDivs[i].classList.remove('active');
+  }
+  
+  var targetContent = document.getElementById('img-' + tabName + '-' + patientNum);
+  if (targetContent) {
+    targetContent.classList.add('active');
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') prevPage();
+  if (e.key === 'ArrowRight') nextPage();
+});
+
+var prevBtn = document.getElementById('prev-btn');
+if (prevBtn) prevBtn.disabled = true;
+
+if (totalPages === 1) {
+  var nextBtn = document.getElementById('next-btn');
+  if (nextBtn) nextBtn.disabled = true;
+}
+</script>
+{% endblock %}

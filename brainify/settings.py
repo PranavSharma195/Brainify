@@ -96,3 +96,15 @@ GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_OAUTH_REDIRECT_URI  = 'http://127.0.0.1:8000/auth/google/callback/'
 
+
+# DEBUG = True
+
+# ALLOWED_HOSTS = ["*"]
+
+# CSRF_TRUSTED_ORIGINS = [
+#     "https://*.ngrok-free.dev"
+# ]
+
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+

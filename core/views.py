@@ -2,6 +2,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+import zipfile
+import io
+import json
 
 # Admin hard delete scan view
 @login_required
@@ -1095,3 +1098,126 @@ User ID: {request.user.id}
 @login_required
 def booking_view(request):
     return render(request, 'core/booking.html', {'active': 'booking'})
+
+@login_required
+def bulk_results_view(request):
+    """Display bulk upload results"""
+    scan_ids_str = request.GET.get('scans', '')
+    if not scan_ids_str:
+        return redirect('upload')
+    
+    scan_ids = [sid.strip() for sid in scan_ids_str.split(',') if sid.strip()]
+    
+    if not scan_ids:
+        return redirect('upload')
+    
+    scans = []
+    for scan_id in scan_ids:
+        try:
+            scan = MRIScan.objects.select_related('result').get(
+                id=scan_id, 
+                uploaded_by=request.user,
+                is_deleted=False
+            )
+            scans.append(scan)
+        except MRIScan.DoesNotExist:
+            continue
+    
+    if not scans:
+        return redirect('upload')
+    
+    context = {
+        'scans': scans,
+        'scan_ids': json.dumps([str(s.id) for s in scans]),
+    }
+    
+    return render(request, 'core/bulk_results.html', context)
+
+
+@login_required
+def bulk_download_zip(request):
+    """
+    Download all reports as ZIP
+    
+    CRITICAL FIX: generate_pdf_report() returns BYTES, not BytesIO!
+    Don't call .getvalue() - use the bytes directly
+    """
+    scan_ids_str = request.GET.get('scans', '')
+    if not scan_ids_str:
+        return JsonResponse({'error': 'No scans specified'}, status=400)
+    
+    scan_ids = [sid.strip() for sid in scan_ids_str.split(',') if sid.strip()]
+    
+    if not scan_ids:
+        return JsonResponse({'error': 'No valid scan IDs'}, status=400)
+    
+    zip_buffer = io.BytesIO()
+    files_added = 0
+    
+    try:
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for i, scan_id in enumerate(scan_ids, 1):
+                try:
+                    scan = MRIScan.objects.select_related('result').get(
+                        id=scan_id,
+                        uploaded_by=request.user,
+                        is_deleted=False
+                    )
+                    
+                    if not hasattr(scan, 'result'):
+                        print(f"[Bulk ZIP] Scan {scan_id} has no result - skipping")
+                        continue
+                    
+                    # Generate PDF - returns BYTES, not BytesIO
+                    from core.report_generator import generate_pdf_report
+                    pdf_bytes = generate_pdf_report(scan, scan.result, request.user)
+                    
+                    # CRITICAL: Check if it's bytes or BytesIO
+                    if hasattr(pdf_bytes, 'getvalue'):
+                        # It's a BytesIO object
+                        pdf_data = pdf_bytes.getvalue()
+                    else:
+                        # It's already bytes
+                        pdf_data = pdf_bytes
+                    
+                    # Create safe filename
+                    safe_name = scan.patient_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+                    filename = f"{i:02d}_{safe_name}_{scan.patient_id}_Report.pdf"
+                    
+                    # Add to ZIP
+                    zip_file.writestr(filename, pdf_data)
+                    files_added += 1
+                    print(f"[Bulk ZIP] Added {filename} ({len(pdf_data)} bytes)")
+                    
+                except MRIScan.DoesNotExist:
+                    print(f"[Bulk ZIP] Scan {scan_id} not found")
+                    continue
+                except Exception as e:
+                    import traceback
+                    print(f"[Bulk ZIP] Error for {scan_id}: {str(e)}")
+                    print(traceback.format_exc())
+                    continue
+        
+        print(f"[Bulk ZIP] Total files added: {files_added}")
+        
+        if files_added == 0:
+            return JsonResponse({'error': 'No reports could be generated. Check server logs.'}, status=400)
+        
+        # Get ZIP data
+        zip_buffer.seek(0)
+        zip_data = zip_buffer.getvalue()
+        
+        print(f"[Bulk ZIP] ZIP file size: {len(zip_data)} bytes")
+        
+        # Send response
+        response = HttpResponse(zip_data, content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="Brainify_Bulk_Reports_{files_added}_Patients.zip"'
+        response['Content-Length'] = len(zip_data)
+        
+        return response
+        
+    except Exception as e:
+        import traceback
+        print(f"[Bulk ZIP] Fatal error: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': f'Failed to create ZIP: {str(e)}'}, status=500)

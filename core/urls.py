@@ -3,6 +3,8 @@ from . import views
 
 urlpatterns = [
     path('', views.landing, name='landing'),
+    path('bulk-results/', views.bulk_results_view, name='bulk_results'),
+    path('bulk-download-zip/', views.bulk_download_zip, name='bulk_download_zip'),
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', views.logout_view, name='logout'),

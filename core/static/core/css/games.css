@@ -11,71 +11,108 @@
 
 .games-page-header {
   flex-shrink: 0;
-  padding: 20px 28px 16px;
+  padding: 20px 28px 18px;
   background: var(--bg2);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
 }
-.games-page-title { font-size: 22px; font-weight: 800; color: var(--white); letter-spacing: -.4px; }
-.games-page-sub   { font-size: 12.5px; color: var(--soft); margin-top: 3px; }
+
+/* Hero left block */
+.games-hero { display: flex; align-items: center; gap: 16px; }
+.games-hero-icon {
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+  background: var(--accent-s); border: 1px solid var(--accent-l);
+  display: flex; align-items: center; justify-content: center;
+}
+.games-hero-icon .material-symbols-rounded { font-size: 28px; color: var(--accent); }
+.games-page-title { font-size: 20px; font-weight: 800; color: var(--white); letter-spacing: -.4px; }
+.games-page-sub   { font-size: 12px; color: var(--soft); margin-top: 4px; line-height: 1.5; max-width: 460px; }
+
+/* Hero right stats */
+.games-hero-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.ghs-item {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--soft); font-weight: 500;
+  padding: 7px 14px; border-radius: 99px;
+  background: var(--card2); border: 1px solid var(--line);
+}
+.ghs-item .material-symbols-rounded { font-size: 15px; color: var(--accent); }
 
 .games-lobby-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 28px 28px;
+  padding: 24px 28px 36px;
 }
 
-/* Grid: auto-fill with a sensible min so it uses full width */
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
+@media (max-width: 1100px) { .games-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 680px)  { .games-grid { grid-template-columns: 1fr; } }
 
 /* ── GAME CARD ── */
 .game-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 22px 22px 18px;
   cursor: pointer;
   transition: all .18s;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-height: 200px;
 }
 .game-card:hover {
   border-color: var(--line2);
   background: var(--card2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,.2);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 32px rgba(0,0,0,.22);
 }
-[data-theme="light"] .game-card:hover { box-shadow: 0 6px 20px rgba(22,56,216,.1); }
+[data-theme="light"] .game-card:hover { box-shadow: 0 8px 24px rgba(22,56,216,.12); }
 
 /* Card top row */
 .gc-top   { display: flex; align-items: center; gap: 14px; }
-.gc-icon  { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.gc-icon  { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .gc-title { flex: 1; }
-.gc-name  { font-size: 15px; font-weight: 800; color: var(--white); letter-spacing: -.2px; }
+.gc-name  { font-size: 16px; font-weight: 800; color: var(--white); letter-spacing: -.3px; }
 .gc-badge {
-  display: inline-flex; margin-top: 4px;
-  font-size: 9.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  display: inline-flex; margin-top: 5px;
+  font-size: 9.5px; font-weight: 700; padding: 2px 9px; border-radius: 99px;
   background: var(--accent-s); color: var(--accent); letter-spacing: .4px; text-transform: uppercase;
 }
 
 /* Description */
-.gc-desc { font-size: 12.5px; color: var(--soft); line-height: 1.6; flex: 1; }
+.gc-desc { font-size: 13px; color: var(--soft); line-height: 1.65; }
+
+/* How to play */
+.gc-howto { background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.gc-howto-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 8px; }
+.gc-howto-list {
+  margin: 0; padding: 0 0 0 16px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.gc-howto-list li { font-size: 12px; color: var(--bright); line-height: 1.5; }
+
+/* Trains badge */
+.gc-trains {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--muted); font-weight: 500;
+}
+.gc-trains strong { color: var(--soft); font-weight: 600; }
 
 /* Stats row */
-.gc-stats { display: flex; gap: 12px; }
+.gc-stats { display: flex; gap: 10px; }
 .gc-stat  {
   flex: 1; background: var(--card2); border: 1px solid var(--line); border-radius: 8px;
-  padding: 8px 10px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 9px 10px; display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.gc-stat-val { font-size: 14px; font-weight: 800; color: var(--white); line-height: 1; }
+.gc-stat-val { font-size: 15px; font-weight: 800; color: var(--white); line-height: 1; }
 .gc-stat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
 
 /* Recent scores */
@@ -88,13 +125,13 @@
 
 /* Play button inside card */
 .gc-play {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 9px; border-radius: 8px; background: var(--accent-s);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 11px; border-radius: 9px; background: var(--accent-s);
   border: 1px solid var(--accent-l); color: var(--accent);
-  font-size: 12.5px; font-weight: 700; transition: all .15s;
+  font-size: 13px; font-weight: 700; transition: all .15s; margin-top: 2px;
 }
 .game-card:hover .gc-play { background: var(--blue2); border-color: var(--blue2); color: #fff; }
-.gc-play .material-symbols-rounded { font-size: 16px; }
+.gc-play .material-symbols-rounded { font-size: 17px; }
 
 
 /* ══════════════════════════════════════════════════════
@@ -287,6 +324,17 @@
 .word-timer-bar { height: 5px; background: var(--line2); border-radius: 99px; overflow: hidden; margin: 10px auto 20px; max-width: 600px; }
 .word-timer-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width linear; }
 
+
+/* ══ SPEED MATCH TIMER BAR ══ */
+.sm-timer-wrap {
+  width: 100%; max-width: 560px; height: 7px;
+  background: var(--line2); border-radius: 99px; overflow: hidden;
+  margin: 4px auto 8px;
+}
+.sm-timer-bar {
+  height: 100%; width: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+}
 
 /* ══ GAME 6: SPEED MATCH ══ */
 .speed-layout { display: flex; flex-direction: column; align-items: center; width: 100%; }

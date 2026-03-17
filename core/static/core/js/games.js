@@ -19,21 +19,56 @@ const GAME_NAMES = {
 /* ── Build lobby cards ── */
 (function buildLobby() {
   const defs = [
-    { id:'memory_match',  name:'Memory Match',   desc:'Flip cards and match brain-themed emoji pairs. Grid grows bigger every level.',         levels:10, icon:'grid_on',     clr:'var(--blue)',   bg:'rgba(96,144,255,.13)' },
-    { id:'simon_says',    name:'Simon Says',      desc:'Watch the color buttons light up in sequence, then repeat it exactly. One slip = game over.', levels:12, icon:'touch_app',   clr:'var(--purple)', bg:'rgba(160,112,255,.13)' },
-    { id:'number_memory', name:'Number Memory',   desc:'A number flashes on screen, then disappears. Type it back exactly — digits increase each level.', levels:10, icon:'tag',         clr:'var(--green)',  bg:'rgba(40,223,160,.1)' },
-    { id:'grid_pattern',  name:'Grid Pattern',    desc:'A set of cells lights up briefly. Memorize the exact positions and reproduce the pattern.',  levels:10, icon:'apps',        clr:'var(--amber)',  bg:'rgba(240,156,56,.12)' },
-    { id:'word_flash',    name:'Word Flash',      desc:'A brain or medical term appears for a split second. Choose it from a growing set of options.', levels:10, icon:'text_fields', clr:'var(--teal)',   bg:'rgba(48,212,200,.12)' },
-    { id:'speed_match',   name:'Speed Match',     desc:'Does the current card match the previous one? React before time runs out — it gets faster.', levels:10, icon:'bolt',        clr:'var(--rose)',   bg:'rgba(240,96,160,.12)' },
-    { id:'color_order',   name:'Color Order',     desc:'Colored circles appear one by one. Watch the order carefully, then click them in the same sequence.', levels:10, icon:'palette',     clr:'var(--coral)',  bg:'rgba(255,138,112,.12)' },
+    {
+      id:'memory_match', name:'Memory Match', levels:10, icon:'grid_on', clr:'var(--blue)', bg:'rgba(96,144,255,.13)',
+      desc:'Flip cards to reveal brain-themed emoji and find matching pairs. Every correct match stays face-up. Clear the entire board to advance.',
+      howto:['Tap any card to flip it over','Flip a second card — if they match, both stay revealed','If they don\'t match, both flip back. Remember their positions!','Clear all pairs to level up — grid grows each round'],
+      trains:'Visual memory · Spatial recall',
+    },
+    {
+      id:'simon_says', name:'Simon Says', levels:12, icon:'touch_app', clr:'var(--purple)', bg:'rgba(160,112,255,.13)',
+      desc:'Watch the colored buttons flash in a sequence. Each round adds one more step. Repeat the full sequence perfectly — one wrong press ends the game.',
+      howto:['Watch carefully as buttons light up one by one','When it\'s your turn, press them in the exact same order','Each successful round adds a new color to the sequence','The sequence never resets — it just keeps growing'],
+      trains:'Sequential memory · Attention',
+    },
+    {
+      id:'number_memory', name:'Number Memory', levels:10, icon:'tag', clr:'var(--green)', bg:'rgba(40,223,160,.1)',
+      desc:'A number flashes on screen for a few seconds, then disappears. Type it back exactly. Numbers get longer every level — starting at 3 digits, going up to 12.',
+      howto:['Read the number as it appears on screen','A countdown shows how long you have to memorise it','Once it vanishes, type it exactly into the input box','You have 3 lives — a wrong answer costs one life'],
+      trains:'Working memory · Digit span',
+    },
+    {
+      id:'grid_pattern', name:'Grid Pattern', levels:10, icon:'apps', clr:'var(--amber)', bg:'rgba(240,156,56,.12)',
+      desc:'A set of cells briefly lights up on a grid. Memorise every position, then recreate the exact pattern from memory. Grid size and number of lit cells increase each level.',
+      howto:['Watch which cells glow — they\'re only visible for a moment','After they disappear, click the cells you remember','Select the same number of cells as you saw lit','Hit "Check Pattern" when done — wrong = game over'],
+      trains:'Spatial memory · Pattern recognition',
+    },
+    {
+      id:'word_flash', name:'Word Flash', levels:10, icon:'text_fields', clr:'var(--teal)', bg:'rgba(48,212,200,.12)',
+      desc:'A neuroscience or medical term flashes briefly on screen. Then it vanishes and you must pick it from a list of similar words. Display time shrinks and options grow as you advance.',
+      howto:['Read the word that appears in the centre','It disappears after a short flash — pay close attention','Select the correct word from the multiple-choice options','Wrong answers cost a life — 3 lives total per game'],
+      trains:'Vocabulary memory · Recognition speed',
+    },
+    {
+      id:'speed_match', name:'Speed Match', levels:10, icon:'bolt', clr:'var(--rose)', bg:'rgba(240,96,160,.12)',
+      desc:'Cards flip past one at a time. For each card, decide whether it matches the one before it. You must answer before the timer runs out — and the timer gets shorter every level.',
+      howto:['A new card appears — compare it to the one shown as "Previous"','Press MATCH if the current card is the same symbol','Press NO MATCH if it\'s different','Too slow = wrong answer. Pace gets faster each level'],
+      trains:'Processing speed · Inhibitory control',
+    },
+    {
+      id:'color_order', name:'Color Order', levels:10, icon:'palette', clr:'var(--coral)', bg:'rgba(255,138,112,.12)',
+      desc:'Colored circles flash on screen one by one. Watch the sequence carefully without any hints. Then click the circles in the exact same order to score points.',
+      howto:['Watch each color circle light up in sequence — no hints shown','After the sequence ends, the circles become clickable','Click them in the exact order they originally lit up','A mistake ends the game — sequence length grows each level'],
+      trains:'Sequence memory · Colour recognition',
+    },
   ];
 
   const grid = document.getElementById('games-grid');
   if (!grid) return;
 
   defs.forEach(d => {
-    const best    = localBests[d.id];
-    const history = localHistory[d.id] || [];
+    const best      = localBests[d.id];
+    const history   = localHistory[d.id] || [];
     const bestScore = best ? best.score : 0;
     const bestLevel = best ? best.level : 0;
     const histHtml  = history.length
@@ -43,11 +78,13 @@ const GAME_NAMES = {
          </div>`
       : `<div class="gc-history"><span class="gh-pill-lbl" style="color:var(--dim)">No games played yet</span></div>`;
 
+    const howtoHtml = d.howto.map(step => `<li>${step}</li>`).join('');
+
     grid.innerHTML += `
       <div class="game-card" id="lobby-${d.id}" onclick="openGame('${d.id}')">
         <div class="gc-top">
           <div class="gc-icon" style="background:${d.bg}">
-            <span class="material-symbols-rounded" style="color:${d.clr};font-size:26px">${d.icon}</span>
+            <span class="material-symbols-rounded" style="color:${d.clr};font-size:28px">${d.icon}</span>
           </div>
           <div class="gc-title">
             <div class="gc-name">${d.name}</div>
@@ -55,6 +92,14 @@ const GAME_NAMES = {
           </div>
         </div>
         <div class="gc-desc">${d.desc}</div>
+        <div class="gc-howto">
+          <div class="gc-howto-label">How to play</div>
+          <ol class="gc-howto-list">${howtoHtml}</ol>
+        </div>
+        <div class="gc-trains">
+          <span class="material-symbols-rounded" style="font-size:13px;color:${d.clr}">neurology</span>
+          Trains: <strong>${d.trains}</strong>
+        </div>
         <div class="gc-stats">
           <div class="gc-stat">
             <div class="gc-stat-val" id="hs-${d.id}" style="color:var(--amber)">${bestScore > 0 ? bestScore : '—'}</div>
@@ -285,7 +330,6 @@ function initSimon() {
   simonSeq = []; simonPlayer = 0;
   container.innerHTML = `
     <div class="game-msg" id="simon-msg">Press Start to begin</div>
-    <div class="simon-seq-display" id="simon-seq-row"></div>
     <div class="simon-board">
       <button class="simon-btn" id="sb-red"    data-c="red"    disabled>Red</button>
       <button class="simon-btn" id="sb-blue"   data-c="blue"   disabled>Blue</button>
@@ -302,14 +346,6 @@ function simonStart() {
 function simonNextRound() {
   simonPlayer = 0;
   simonSeq.push(SIMON_COLORS[Math.floor(Math.random()*4)]);
-  // Update sequence pips
-  const row = document.getElementById('simon-seq-row');
-  if (row) {
-    row.innerHTML = simonSeq.map((c,i) => {
-      const colMap = {red:'#c0392b',blue:'#2980b9',green:'#27ae60',yellow:'#f1c40f'};
-      return `<div class="simon-seq-pip" id="spip-${i}" style="background:${colMap[c]};opacity:.3;border-color:${colMap[c]}"></div>`;
-    }).join('');
-  }
   const msg = document.getElementById('simon-msg');
   if (msg) msg.textContent = `Watch the sequence (${simonSeq.length} steps)…`;
   setSimonEnabled(false);
@@ -325,10 +361,8 @@ function simonPlay(i) {
     return;
   }
   const btn = document.getElementById('sb-' + simonSeq[i]);
-  const pip = document.getElementById('spip-' + i);
   gt(() => {
     if (btn) btn.classList.add('active');
-    if (pip) pip.style.opacity = '1';
     gt(() => { if (btn) btn.classList.remove('active'); simonPlay(i+1); }, 520);
   }, 650);
 }
@@ -575,38 +609,58 @@ function wfPick(btn, word) {
 /* ═══════════════════════════════════════════════════════
    GAME 6 — SPEED MATCH
 ═══════════════════════════════════════════════════════ */
-const SM_SYM = ['🧠','🔬','💊','🩺','🩻','🫀','🫁','🦷','👁','🧬','⚗️','🔭'];
-let smPrev = '', smLives = 3, smIdx = 0, smCards = [], smAnswered = false;
+/* Smaller symbol pool = more matches = easier to follow */
+const SM_SYM = ['🧠','🔬','💊','🩺','🫀','🦷','👁','🧬'];
+let smPrev = '', smLives = 0, smIdx = 0, smCards = [], smAnswered = false, smTimerId = null;
 
 function initSpeedMatch() {
   const container = document.getElementById('game-speed_match');
-  smLives = 3; smIdx = 0; smPrev = ''; smAnswered = false;
+  smLives = 5; smIdx = 0; smPrev = ''; smAnswered = false;
   currentScore = 0; currentLevel = 1; updateTopBar();
   smBuild(container);
 }
-function smConfig(level) { return {count: 9+level, holdMs: Math.max(550, 2100-level*130)}; }
+
+/* holdMs: time per card. Starts at 5s, eases down to 2s at level 10 */
+function smConfig(level) {
+  return { count: 6 + level, holdMs: Math.max(2000, 5200 - level * 300) };
+}
+
 function smBuild(container) {
   const {count, holdMs} = smConfig(currentLevel);
-  smCards = Array.from({length:count}, () => SM_SYM[Math.floor(Math.random()*SM_SYM.length)]);
-  smIdx = 0; smPrev = ''; smAnswered = false; smLives = 3;
+  /* Guarantee ~40% matches so there's always something to find */
+  smCards = [];
+  let prev = '';
+  for (let i = 0; i < count; i++) {
+    let sym;
+    if (i > 0 && Math.random() < 0.40) {
+      sym = prev;
+    } else {
+      const pool = SM_SYM.filter(s => s !== prev);
+      sym = pool[Math.floor(Math.random() * pool.length)];
+    }
+    smCards.push(sym);
+    prev = sym;
+  }
+  smIdx = 0; smPrev = ''; smAnswered = false;
   container.innerHTML = `
     <div class="game-status-bar">
       <div class="gsb-item"><div class="gsb-val">${currentLevel}</div><div class="gsb-lbl">Level</div></div>
-      <div class="gsb-item"><div class="gsb-val" id="sm-cnt">1/${count}</div><div class="gsb-lbl">Card</div></div>
-      <div class="gsb-item"><div class="gsb-val" id="sm-hrt">${'❤️'.repeat(smLives)}</div><div class="gsb-lbl">Lives</div></div>
+      <div class="gsb-item"><div class="gsb-val" id="sm-cnt">—</div><div class="gsb-lbl">Card</div></div>
+      <div class="gsb-item"><div class="gsb-val" id="sm-hrt" style="font-size:18px">${'❤️'.repeat(smLives)}</div><div class="gsb-lbl">Lives</div></div>
     </div>
     <div class="speed-layout">
       <div class="speed-prev-section">
         <div class="speed-prev-box">
-          <div class="speed-box-lbl">Previous card</div>
+          <div class="speed-box-lbl">Previous</div>
           <div class="speed-box-sym" id="sm-prev">—</div>
         </div>
         <div style="font-size:28px;color:var(--muted);align-self:center">→</div>
         <div class="speed-prev-box">
-          <div class="speed-box-lbl">Current card</div>
+          <div class="speed-box-lbl">Current</div>
           <div class="speed-box-sym" id="sm-card">?</div>
         </div>
       </div>
+      <div class="sm-timer-wrap"><div class="sm-timer-bar" id="sm-timer-bar"></div></div>
       <div class="game-msg" id="sm-msg">Does it match the previous card?</div>
       <div class="speed-btns">
         <button class="speed-match-btn yes" id="sm-yes" onclick="smAns(true)"  disabled>MATCH ✓</button>
@@ -616,50 +670,85 @@ function smBuild(container) {
         ${smCards.map((_,i) => `<div class="speed-pip" id="smpip-${i}"></div>`).join('')}
       </div>
     </div>`;
-  gt(() => smShow(container, holdMs), 300);
+  gt(() => smShow(container, holdMs), 400);
 }
+
 function smShow(container, holdMs) {
   if (smIdx >= smCards.length) {
-    currentScore += smCards.length * 25 * currentLevel; updateTopBar();
+    const pts = smCards.length * 30 * currentLevel;
+    currentScore += pts; updateTopBar();
     if (currentLevel >= 10) { showGameOver(container, currentScore, currentLevel); return; }
     const m = document.getElementById('sm-msg');
-    if (m) { m.textContent = `Round clear! +${smCards.length*25*currentLevel} pts`; m.className = 'game-msg success'; }
-    gt(() => { currentLevel++; smBuild(container); }, 1300);
+    if (m) { m.textContent = `Round complete! +${pts} pts`; m.className = 'game-msg success'; }
+    gt(() => { currentLevel++; updateTopBar(); smBuild(container); }, 1500);
     return;
   }
+
+  /* First card — show it but skip judging (no previous exists) */
+  if (smIdx === 0) {
+    const sym = smCards[0];
+    const card = document.getElementById('sm-card');
+    const cnt  = document.getElementById('sm-cnt');
+    const m    = document.getElementById('sm-msg');
+    if (card) { card.textContent = sym; card.className = 'speed-box-sym flash'; }
+    if (cnt)  cnt.textContent = `1/${smCards.length}`;
+    if (m)    { m.textContent = 'Remember this card…'; m.className = 'game-msg'; }
+    setSmBtns(false);
+    smTimerStart(holdMs * 0.7);
+    gt(() => { smPrev = sym; smIdx = 1; clearTimeout(smTimerId); smShow(container, holdMs); }, holdMs * 0.7);
+    return;
+  }
+
   smAnswered = false;
-  const sym = smCards[smIdx];
+  const sym  = smCards[smIdx];
   const card = document.getElementById('sm-card');
   const prev = document.getElementById('sm-prev');
   const cnt  = document.getElementById('sm-cnt');
-  if (card) { card.textContent = sym; card.className = 'speed-box-sym flash'; gt(() => { if(card) card.className = 'speed-box-sym'; }, 220); }
-  if (prev) prev.textContent = smPrev || '—';
+  const m    = document.getElementById('sm-msg');
+  if (card) { card.textContent = sym; card.className = 'speed-box-sym flash'; gt(() => { if(card) card.className = 'speed-box-sym'; }, 180); }
+  if (prev) prev.textContent = smPrev;
   if (cnt)  cnt.textContent  = `${smIdx+1}/${smCards.length}`;
+  if (m)    { m.textContent = 'Same as previous?'; m.className = 'game-msg'; }
   setSmBtns(true);
-  gt(() => { if (!smAnswered) smAns(null); }, holdMs);
+  smTimerStart(holdMs);
+  smTimerId = gt(() => { if (!smAnswered) smAns(null); }, holdMs);
 }
+
+function smTimerStart(ms) {
+  const bar = document.getElementById('sm-timer-bar');
+  if (!bar) return;
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition = `width ${ms}ms linear`;
+    bar.style.width = '0%';
+  }));
+}
+
 function setSmBtns(en) { ['sm-yes','sm-no'].forEach(id => { const b=document.getElementById(id); if(b) b.disabled=!en; }); }
+
 function smAns(isMatch) {
   if (smAnswered) return;
   smAnswered = true; setSmBtns(false);
   const container = document.getElementById('game-speed_match');
   const sym = smCards[smIdx];
-  const shouldMatch = smPrev !== '' && smPrev === sym;
+  const shouldMatch = smPrev === sym;
   const correct = isMatch !== null && isMatch === shouldMatch;
   const pip = document.getElementById('smpip-' + smIdx);
   if (pip) pip.classList.add(correct ? 'correct' : 'wrong');
   const m = document.getElementById('sm-msg');
   if (!correct) {
     smLives--;
-    const hh = document.getElementById('sm-hrt'); if (hh) hh.textContent = '❤️'.repeat(Math.max(0,smLives));
-    if (m) { m.textContent = isMatch===null ? '⏱ Too slow!' : '✗ Wrong!'; m.className = 'game-msg error'; }
-    if (smLives <= 0) { gt(() => showGameOver(container, currentScore, currentLevel), 800); return; }
+    const hh = document.getElementById('sm-hrt'); if (hh) hh.textContent = '❤️'.repeat(Math.max(0, smLives));
+    if (m) { m.textContent = isMatch === null ? 'Too slow!' : `Wrong! It was ${shouldMatch ? 'a MATCH' : 'NO MATCH'}`; m.className = 'game-msg error'; }
+    if (smLives <= 0) { gt(() => showGameOver(container, currentScore, currentLevel), 900); return; }
   } else {
-    if (m) { m.textContent = '✓ Correct!'; m.className = 'game-msg success'; }
+    currentScore += 30 * currentLevel; updateTopBar();
+    if (m) { m.textContent = shouldMatch ? 'Correct — matched!' : 'Correct — no match!'; m.className = 'game-msg success'; }
   }
   smPrev = sym; smIdx++;
   const {holdMs} = smConfig(currentLevel);
-  gt(() => smShow(container, holdMs), 420);
+  gt(() => smShow(container, holdMs), 500);
 }
 
 
@@ -676,7 +765,7 @@ let coSeq = [], coPlayer = 0, coEnabled = false;
 
 function initColorOrder() {
   const container = document.getElementById('game-color_order');
-  coPlayer = 0; coEnabled = false; currentScore = 0; currentLevel = 1; updateTopBar();
+  coPlayer = 0; coEnabled = false;
   coRender(container);
 }
 function coRender(container) {
@@ -693,9 +782,6 @@ function coRender(container) {
       <div class="gsb-item"><div class="gsb-val">${numC}</div><div class="gsb-lbl">Colors</div></div>
     </div>
     <div class="game-msg" id="co-msg">Watch the order carefully…</div>
-    <div class="color-order-seq" id="co-seq">
-      ${coSeq.map((c,i)=>`<div class="cos-pip" id="cop-${i}" style="background:${c.bg};border-color:${c.bg};opacity:.25"></div>`).join('')}
-    </div>
     <div class="color-stage" id="co-stage">
       ${pal.map(c=>`<div class="color-circle" id="${c.id}" style="background:${c.bg}" onclick="coPick('${c.id}')">${c.label}</div>`).join('')}
     </div>`;
@@ -703,12 +789,17 @@ function coRender(container) {
   coPlay(0, showMs);
 }
 function coPlay(i, showMs) {
-  if (i >= coSeq.length) { gt(() => { setCoEnabled(true); const m=document.getElementById('co-msg'); if(m)m.textContent='Now click in the same order!'; }, 450); return; }
-  const pip    = document.getElementById('cop-' + i);
+  if (i >= coSeq.length) {
+    gt(() => {
+      setCoEnabled(true);
+      const m = document.getElementById('co-msg');
+      if (m) m.textContent = 'Now click in the same order!';
+    }, 450);
+    return;
+  }
   const circle = document.getElementById(coSeq[i].id);
   gt(() => {
     if (circle) circle.classList.add('active');
-    if (pip)    pip.style.opacity = '1';
     gt(() => { if (circle) circle.classList.remove('active'); coPlay(i+1, showMs); }, showMs * 0.65);
   }, showMs * 0.35 + i * (showMs + 80));
 }
@@ -727,7 +818,6 @@ function coPick(cid) {
   const circle    = document.getElementById(cid);
   if (cid === expected.id) {
     if (circle) { circle.classList.add('correct'); gt(() => circle.classList.remove('correct'), 300); }
-    const pip = document.getElementById('cop-' + coPlayer); if (pip) pip.style.borderColor = '#fff';
     coPlayer++;
     if (coPlayer === coSeq.length) {
       setCoEnabled(false);

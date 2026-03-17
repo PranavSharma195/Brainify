@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 {% block title %}Brainify Games{% endblock %}
-{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/games.css' %}">{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/games.css' %}?v=4">{% endblock %}
 {% block body %}
 <div class="shell">
   {% include 'core/_sidebar.html' with a='games' %}
@@ -9,9 +9,28 @@
 
     <!-- LOBBY HEADER -->
     <div class="games-page-header">
-      <div>
-        <div class="games-page-title">Brainify Games 🧠</div>
-        <div class="games-page-sub">7 memory games · 10+ levels each · beat your personal best</div>
+      <div class="games-hero">
+        <div class="games-hero-icon">
+          <span class="material-symbols-rounded">neurology</span>
+        </div>
+        <div class="games-hero-text">
+          <div class="games-page-title">Brain Training Games</div>
+          <div class="games-page-sub">7 scientifically-inspired memory games · up to 12 levels each · tracks your personal best automatically</div>
+        </div>
+      </div>
+      <div class="games-hero-stats">
+        <div class="ghs-item">
+          <span class="material-symbols-rounded">sports_esports</span>
+          <span>7 Games</span>
+        </div>
+        <div class="ghs-item">
+          <span class="material-symbols-rounded">trending_up</span>
+          <span>Auto-saves progress</span>
+        </div>
+        <div class="ghs-item">
+          <span class="material-symbols-rounded">psychology</span>
+          <span>Trains working memory</span>
+        </div>
       </div>
     </div>
 
@@ -78,5 +97,5 @@ window.CSRF_TOKEN    = "{{ csrf_token }}";
 </script>
 {% endblock %}
 {% block scripts %}
-<script src="{% static 'core/js/games.js' %}"></script>
+<script src="{% static 'core/js/games.js' %}?v=4"></script>
 {% endblock %}

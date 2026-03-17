@@ -68,11 +68,22 @@
           <div class="cs">Daily uploads — last 14 days</div>
           <canvas id="act" height="130"></canvas>
         </div>
-        <div class="chart-box">
+        <div class="chart-box" style="display:flex;flex-direction:column">
           <div class="ct">Severity Breakdown</div>
-          <div class="cs">Distribution of all results</div>
+          <div class="cs" style="margin-bottom:0">Distribution of all results</div>
           {% if sev_data %}
-          <div style="max-width:170px;margin:0 auto"><canvas id="sev" height="150"></canvas></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:14px 0">
+            <div style="width:min(100%,220px);height:min(100%,220px);position:relative">
+              <canvas id="sev"></canvas>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;padding-bottom:4px">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>Normal</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#60a5fa;flex-shrink:0"></span>Mild</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>Moderate</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#f97316;flex-shrink:0"></span>Severe</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0"></span>Critical</span>
+          </div>
           {% else %}
           <div class="empty" style="padding:28px 0"><span class="material-symbols-rounded" style="font-size:36px">pie_chart</span><div style="font-size:13px">No results yet</div></div>
           {% endif %}
@@ -130,5 +141,5 @@ window.__bfy_days={{ days_json|safe }};
 window.__bfy_counts={{ counts_json|safe }};
 window.__bfy_sev={{ sev_data|safe }};
 </script>
-<script src="{% static 'core/js/dashboard.js' %}"></script>
+<script src="{% static 'core/js/dashboard.js' %}?v=2"></script>
 {% endblock %}

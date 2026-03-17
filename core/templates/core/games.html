@@ -1,0 +1,82 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Brainify Games{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/games.css' %}">{% endblock %}
+{% block body %}
+<div class="shell">
+  {% include 'core/_sidebar.html' with a='games' %}
+  <main class="main games-main">
+
+    <!-- LOBBY HEADER -->
+    <div class="games-page-header">
+      <div>
+        <div class="games-page-title">Brainify Games 🧠</div>
+        <div class="games-page-sub">7 memory games · 10+ levels each · beat your personal best</div>
+      </div>
+    </div>
+
+    <!-- LOBBY GRID (rendered by JS) -->
+    <div class="games-lobby-body">
+      <div class="games-grid" id="games-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════ FULLSCREEN GAME OVERLAY ═══════════ -->
+<div id="gameOverlay" class="game-overlay" style="display:none">
+
+  <!-- Top bar -->
+  <div class="go-topbar">
+    <button class="go-exit-btn" onclick="closeGame()">
+      <span class="material-symbols-rounded">arrow_back</span>Exit
+    </button>
+    <div class="go-title-block">
+      <span id="go-game-name" class="go-gname"></span>
+    </div>
+    <div class="go-stats">
+      <div class="go-stat">
+        <div class="go-stat-val" id="go-level">1</div>
+        <div class="go-stat-lbl">Level</div>
+      </div>
+      <div class="go-stat">
+        <div class="go-stat-val" id="go-score" style="color:var(--green)">0</div>
+        <div class="go-stat-lbl">Score</div>
+      </div>
+      <div class="go-stat">
+        <div class="go-stat-val" id="go-best" style="color:var(--amber)">0</div>
+        <div class="go-stat-lbl">Best</div>
+      </div>
+    </div>
+    <div class="go-actions">
+      <button class="go-action-btn" onclick="saveCurrentProgress()" id="go-save-btn">
+        <span class="material-symbols-rounded">save</span>Save
+      </button>
+      <button class="go-action-btn" onclick="restartGame()">
+        <span class="material-symbols-rounded">restart_alt</span>Restart
+      </button>
+    </div>
+  </div>
+
+  <!-- Game content -->
+  <div class="go-content" id="go-content">
+    <div id="game-memory_match"  class="game-container" style="display:none"></div>
+    <div id="game-simon_says"    class="game-container" style="display:none"></div>
+    <div id="game-number_memory" class="game-container" style="display:none"></div>
+    <div id="game-grid_pattern"  class="game-container" style="display:none"></div>
+    <div id="game-word_flash"    class="game-container" style="display:none"></div>
+    <div id="game-speed_match"   class="game-container" style="display:none"></div>
+    <div id="game-color_order"   class="game-container" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+window.GAME_SCORES   = {{ scores_json|safe }};
+window.GAME_HISTORY  = {{ history_json|safe }};
+window.SAVE_SCORE_URL= "{% url 'save_game_score' %}";
+window.CSRF_TOKEN    = "{{ csrf_token }}";
+</script>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'core/js/games.js' %}"></script>
+{% endblock %}

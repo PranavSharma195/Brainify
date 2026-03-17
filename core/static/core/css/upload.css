@@ -1,8 +1,13 @@
 /* Full height, no bottom gap */
 .shell{height:100vh;overflow:hidden}
+/* Mode switching — mode-single/mode-bulk class on <main> controls which panel shows.
+   !important beats bfcache inline-style and the old flex !important rule below. */
+.main.mode-single #bulkUploadMode   { display: none !important; }
+.main.mode-bulk   #singleUploadMode  { display: none !important; }
+.main.mode-bulk   #bulkUploadMode   { display: flex !important; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
 .main{overflow:hidden!important;display:flex!important;flex-direction:column!important;height:100vh}
 .upload-wrap{display:grid;grid-template-columns:1fr 260px;gap:16px;padding:16px 20px;flex:1;min-height:0;overflow:hidden}
-.upload-main{display:flex;flex-direction:column;gap:14px;height:100%;overflow:hidden}
+.upload-main{display:flex;flex-direction:column;gap:14px;height:100%;overflow-y:auto;padding-right:2px}
 .upload-side{display:flex;flex-direction:column;gap:12px;overflow-y:auto;height:100%}
 
 /* Page header */
@@ -12,7 +17,7 @@
 .ph2-sub{font-size:12px;color:var(--muted);margin-top:1px}
 
 /* Dropbox */
-.dropbox{border:2px dashed var(--line2);border-radius:12px;padding:52px 24px;text-align:center;cursor:pointer;transition:all .25s;background:var(--card);position:relative;overflow:hidden}
+.dropbox{border:2px dashed var(--line2);border-radius:12px;padding:52px 24px 68px;text-align:center;cursor:pointer;transition:all .25s;background:var(--card);position:relative;overflow:hidden;min-height:180px;flex-shrink:0}
 .dropbox::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(44,110,224,.05) 0%,transparent 65%);pointer-events:none;transition:opacity .25s;opacity:0}
 .dropbox:hover::before,.dropbox.over::before{opacity:1}
 .dropbox:hover,.dropbox.over{border-color:var(--blue);background:var(--card2);transform:scale(1.005)}
@@ -24,8 +29,22 @@
 .db-sub{font-size:12.5px;color:var(--muted)}
 .browse{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 18px;background:var(--card2);border:1px solid var(--line2);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font,'Inter',system-ui)}
 .browse:hover{border-color:var(--blue);color:var(--blue)}
-.file-info{display:none;margin-top:10px;padding:8px 14px;background:rgba(26,208,128,.07);border:1px solid rgba(26,208,128,.2);border-radius:8px;font-size:12.5px;color:var(--green,#1AD080);font-weight:600;align-items:center;gap:7px;justify-content:center}
+.file-info{display:none;padding:8px 14px;background:rgba(26,208,128,.07);border:1px solid rgba(26,208,128,.2);border-radius:8px;font-size:12.5px;color:var(--green,#1AD080);font-weight:600;align-items:center;gap:7px;justify-content:center;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
 .file-info.show{display:flex}
+/* File action bar — shown via JS when a file is selected */
+.file-action-bar{display:none;align-items:center;justify-content:space-between;padding:8px 12px;margin-top:10px;background:rgba(26,208,128,.06);border:1px solid rgba(26,208,128,.25);border-radius:8px}
+.file-action-bar.show{display:flex}
+.fab-filename{font-size:12px;font-weight:600;color:var(--green,#1AD080);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;margin-right:10px}
+.fab-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;border:1px solid}
+.fab-btn .material-symbols-rounded{font-size:15px}
+.fab-btn-danger{color:var(--red,#EE5555);border-color:rgba(238,85,85,.35);background:rgba(238,85,85,.07)}
+.fab-btn-danger:hover{background:rgba(238,85,85,.14);border-color:var(--red,#EE5555)}
+.fab-btn-ghost{color:var(--text);border-color:var(--line2);background:transparent}
+.fab-btn-ghost:hover{color:var(--blue);border-color:var(--blue);background:var(--as)}
+/* Bulk compact header after files selected */
+.bulk-loaded-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(26,208,128,.06);border:1px solid rgba(26,208,128,.25);border-radius:10px;margin-bottom:12px}
+.bulk-loaded-bar .blb-info{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--green,#1AD080)}
+.bulk-loaded-bar .blb-actions{display:flex;gap:8px;align-items:center}
 
 /* Form grid */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -118,15 +137,22 @@
   white-space: nowrap;
 }
 
-/* CRITICAL: Bulk Upload Main Container with PROPER SCROLLING */
+/* Bulk Upload Main Container */
 .upload-main-bulk {
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 16px 20px 20px;
   overflow-y: auto;
-  height: 100%;
-  max-height: calc(100vh - 140px);
+  flex: 1;
+  min-height: 0;
+}
+/* #bulkUploadMode layout — display is controlled by mode-* class rules above */
+#bulkUploadMode {
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Bulk Dropbox */

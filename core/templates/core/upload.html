@@ -1,11 +1,11 @@
 {% extends 'core/base.html' %}
 {% load static %}
 {% block title %}Upload MRI — Brainify{% endblock %}
-{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/upload.css' %}">{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/upload.css' %}?v=5">{% endblock %}
 {% block body %}
 <div class="shell">
   {% include 'core/_sidebar.html' with a='upload' %}
-  <main class="main">
+  <main class="main mode-single">
     <!-- Page header -->
     <div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0">
       <div>
@@ -38,27 +38,38 @@
       <div class="upload-main">
 
         <!-- Drop zone -->
-        <div class="card" style="padding:0;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="card" style="padding:0;overflow:hidden;flex-shrink:0">
           <div style="padding:11px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;background:var(--card2)">
             <span class="material-symbols-rounded" style="color:var(--blue);font-size:16px;font-variation-settings:'FILL' 1">cloud_upload</span>
             <span style="font-weight:700;font-size:13.5px;color:var(--white)">Select MRI File</span>
             <span style="margin-left:auto;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--as);border:1px solid var(--al);color:var(--blue)">Max 500 MB</span>
           </div>
-          <div style="padding:14px;flex:1;display:flex;flex-direction:column">
-            <div class="dropbox" id="db" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="padding:14px">
+            <div class="dropbox" id="db" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
               <span class="material-symbols-rounded db-icon" id="dbIcon">upload_file</span>
               <div class="db-title">Drag & drop your MRI file here</div>
               <div class="db-sub">Supports PNG · JPG · TIFF · DICOM · BMP</div>
-              <label class="browse">
+              <label class="browse" id="db-browse-label">
                 <input type="file" id="fi" accept=".png,.jpg,.jpeg,.tiff,.tif,.dcm,.bmp" style="display:none">
                 <span class="material-symbols-rounded" style="font-size:14px">folder_open</span>Browse File
               </label>
-              <div class="file-info" id="fi-info">
+              <div class="file-info" id="fi-info" style="display:none">
                 <span class="material-symbols-rounded" style="font-size:15px">check_circle</span>
                 <span id="fi-name"></span>
               </div>
             </div>
           </div>
+        </div>
+        <!-- Action buttons outside card - always visible, never clipped -->
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+          <button type="button" onclick="clearAllSingle()"
+            style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid rgba(238,85,85,.55);color:#EE5555;background:rgba(238,85,85,.09);">
+            <span class="material-symbols-rounded" style="font-size:17px">delete_sweep</span>Clear All
+          </button>
+          <label for="fi" onclick="clearSingleFileState()"
+            style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--line2,#ccc);color:var(--text,#555);background:var(--card2,#f5f5f5);">
+            <span class="material-symbols-rounded" style="font-size:17px">refresh</span>Re-upload
+          </label>
         </div>
 
         <!-- Patient details -->
@@ -202,35 +213,55 @@
     </div>
 
     <!-- BULK UPLOAD MODE (New) -->
-    <div class="upload-wrap" id="bulkUploadMode" style="display:none">
+    <div id="bulkUploadMode" style="display:none">
       <div class="upload-main-bulk">
-        
+
         <!-- Bulk Drop Zone -->
-        <div class="card" style="padding:0;overflow:hidden">
+        <div id="bulk-dropzone-card" class="card" style="padding:0;overflow:hidden;flex-shrink:0">
           <div style="padding:11px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;background:var(--card2)">
             <span class="material-symbols-rounded" style="color:var(--blue);font-size:16px;font-variation-settings:'FILL' 1">drive_folder_upload</span>
             <span style="font-weight:700;font-size:13.5px;color:var(--white)">Select Multiple MRI Files</span>
-            <span style="margin-left:auto;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--as);border:1px solid var(--al);color:var(--blue)">2-50 Files</span>
+            <span style="margin-left:auto;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--as);border:1px solid var(--al);color:var(--blue)">2–50 Files</span>
           </div>
           <div style="padding:14px">
             <div class="dropbox-bulk" id="db-bulk">
               <span class="material-symbols-rounded db-icon">cloud_upload</span>
               <div class="db-title">Drag & drop MRI files here</div>
               <div class="db-sub">Upload 2 to 50 files · Supports PNG · JPG · TIFF · DICOM · BMP</div>
-              <label class="browse">
+              <label class="browse" id="bulk-browse-label">
                 <input type="file" id="fi-bulk" accept=".png,.jpg,.jpeg,.tiff,.tif,.dcm,.bmp" multiple style="display:none">
                 <span class="material-symbols-rounded" style="font-size:14px">folder_open</span>Browse Files
               </label>
             </div>
-            <div id="bulk-files-list" class="bulk-files-list"></div>
+            <!-- Always-visible action buttons for bulk -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px">
+              <span id="bulk-loaded-count" style="font-size:12.5px;font-weight:600;color:#1AD080;display:none;align-items:center;gap:5px">
+                <span class="material-symbols-rounded" style="font-size:15px">check_circle</span>
+                <span id="bulk-count-text"></span>
+              </span>
+              <div style="display:flex;gap:8px;margin-left:auto">
+                <button type="button" onclick="clearAllBulk()"
+                  style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid rgba(238,85,85,.55);color:#EE5555;background:rgba(238,85,85,.09);">
+                  <span class="material-symbols-rounded" style="font-size:17px">delete_sweep</span>Clear All
+                </button>
+                <label for="fi-bulk" onclick="clearBulkFileState()"
+                  style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--line2,#ccc);color:var(--text,#555);background:var(--card2,#f5f5f5);">
+                  <span class="material-symbols-rounded" style="font-size:17px">refresh</span>Re-upload
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Patient Forms Container -->
+        <!-- Status count bar (shown after files selected) -->
+        <div id="bulk-loaded-bar" style="display:none"></div>
+
+        <!-- File list + Patient Forms Container -->
+        <div id="bulk-files-list" class="bulk-files-list" style="max-height:none;overflow:visible"></div>
         <div id="bulk-patients-container" class="bulk-patients-container"></div>
 
         <!-- Bulk Upload Button -->
-        <button id="bulk-sub" onclick="bulkGo()" class="btn btn-blue btn-lg" style="width:100%;justify-content:center;display:none">
+        <button id="bulk-sub" onclick="bulkGo()" class="btn btn-blue btn-lg" style="width:100%;justify-content:center;display:none;flex-shrink:0">
           <span class="material-symbols-rounded" style="font-size:20px">neurology</span>
           Process All Scans
         </button>
@@ -278,5 +309,5 @@
 window.__bfy_upload_url='{% url "upload_scan" %}';
 window.__bfy_csrf='{{ csrf_token }}';
 </script>
-<script src="{% static 'core/js/upload.js' %}"></script>
+<script src="{% static 'core/js/upload.js' %}?v=5"></script>
 {% endblock %}

@@ -37,4 +37,6 @@ urlpatterns = [
     path('chatbot/api/', views.chatbot_api, name='chatbot_api'),
     path('contact/', views.contact_view, name='contact'),
     path('booking/', views.booking_view, name='booking'),
+    path('games/', views.games_view, name='games'),
+    path('games/save-score/', views.save_game_score, name='save_game_score'),
 ]

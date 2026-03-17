@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 {% block title %}Analytics Dashboard{% endblock %}
-{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/admin_analytics.css' %}">{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'core/css/admin_analytics.css' %}?v=2">{% endblock %}
 
 {% block content %}
 <div class="shell">
@@ -81,38 +81,49 @@
       <!-- ── CHARTS ROW 1 ── -->
       <div class="charts-row">
         <div class="chart-card">
-          <div class="chart-title">Scans Over Time</div>
-          <div class="chart-sub">Daily upload activity — last 14 days</div>
-          <canvas id="scansChart" height="120"></canvas>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Severity Distribution</div>
-          <div class="chart-sub">Classification breakdown of all results</div>
-          <div style="max-width:220px;margin:0 auto">
-            <canvas id="sevChart" height="180"></canvas>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px">
+            <div>
+              <div class="chart-title">Scans Over Time</div>
+              <div class="chart-sub" style="margin-bottom:0">Daily upload activity</div>
+            </div>
+            <select id="monthSelect" style="padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--line2);background:var(--card2);color:var(--text);cursor:pointer;outline:none;flex-shrink:0;-webkit-appearance:none;appearance:none;min-width:100px"></select>
           </div>
-          <div class="severity-legend">
-
+          <canvas id="scansChart" height="120" style="margin-top:14px"></canvas>
+        </div>
+        <div class="chart-card" style="display:flex;flex-direction:column">
+          <div class="chart-title">Severity Distribution</div>
+          <div class="chart-sub" style="margin-bottom:0">Classification breakdown of all results</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:16px 0">
+            <div style="width:min(100%,240px);height:min(100%,240px);position:relative">
+              <canvas id="sevChart"></canvas>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px 16px;padding-bottom:4px">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)"><span style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>Normal</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)"><span style="width:10px;height:10px;border-radius:50%;background:#60a5fa;flex-shrink:0"></span>Mild</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>Moderate</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)"><span style="width:10px;height:10px;border-radius:50%;background:#f97316;flex-shrink:0"></span>Severe</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></span>Critical</span>
           </div>
         </div>
       </div>
 
       <!-- ── CHARTS ROW 2 ── -->
       <div class="charts-row-3">
-        <div class="chart-card">
+        <div class="chart-card" style="padding:18px">
           <div class="chart-title">New Users Per Day</div>
-          <div class="chart-sub">Registrations — last 14 days</div>
-          <canvas id="usersChart" height="130"></canvas>
+          <div class="chart-sub" style="margin-bottom:10px">Registrations — last 14 days</div>
+          <div style="position:relative;height:130px"><canvas id="usersChart"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card" style="padding:18px">
           <div class="chart-title">Scan Type Mix</div>
-          <div class="chart-sub">MRI modality breakdown</div>
-          <canvas id="typeChart" height="130"></canvas>
+          <div class="chart-sub" style="margin-bottom:10px">MRI modality breakdown</div>
+          <div style="max-width:160px;margin:0 auto"><canvas id="typeChart"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card" style="padding:18px">
           <div class="chart-title">Scan Status</div>
-          <div class="chart-sub">Processing pipeline health</div>
-          <canvas id="statusChart" height="130"></canvas>
+          <div class="chart-sub" style="margin-bottom:10px">Processing pipeline health</div>
+          <div style="position:relative;height:130px"><canvas id="statusChart"></canvas></div>
         </div>
       </div>
 
@@ -324,6 +335,8 @@ window.__bfy_total_scans={{ total_scans }};
 window.__bfy_avg_dice={{ avg_dice }};
 window.__bfy_avg_iou={{ avg_iou }};
 window.__bfy_avg_acc={{ avg_acc|floatformat:4 }};
+window.__bfy_monthly_data={{ monthly_data_json|safe }};
+window.__bfy_monthly_labels={{ monthly_labels_json|safe }};
 </script>
-<script src="{% static 'core/js/admin_analytics.js' %}"></script>
+<script src="{% static 'core/js/admin_analytics.js' %}?v=2"></script>
 {% endblock %}

@@ -14,27 +14,87 @@ function escapeHtml(text) {
 // Switch between single and bulk upload modes
 function switchUploadMode(mode) {
   bulkMode = mode;
-  
-  var singleMode = document.getElementById('singleUploadMode');
-  var bulkUploadMode = document.getElementById('bulkUploadMode');
-  
-  if (mode === 'single') {
-    if (singleMode) singleMode.style.display = 'grid';
-    if (bulkUploadMode) bulkUploadMode.style.display = 'none';
-  } else {
-    if (singleMode) singleMode.style.display = 'none';
-    if (bulkUploadMode) bulkUploadMode.style.display = 'block';
+
+  // Toggle class on <main> — CSS uses !important so bfcache can't override
+  var mainEl = document.querySelector('main.main');
+  if (mainEl) {
+    mainEl.classList.toggle('mode-single', mode === 'single');
+    mainEl.classList.toggle('mode-bulk',   mode === 'bulk');
   }
-  
+
+  // Also set inline styles as a second layer
+  var singleDiv = document.getElementById('singleUploadMode');
+  var bulkDiv   = document.getElementById('bulkUploadMode');
+  if (mode === 'single') {
+    if (singleDiv) singleDiv.style.display = 'grid';
+    if (bulkDiv)   bulkDiv.style.display   = 'none';
+  } else {
+    if (singleDiv) singleDiv.style.display = 'none';
+    if (bulkDiv)   bulkDiv.style.display   = 'flex';
+  }
+
   var tabs = document.querySelectorAll('.upload-tab');
   tabs.forEach(function(tab) {
-    if (tab.getAttribute('data-mode') === mode) {
-      tab.classList.add('active');
-    } else {
-      tab.classList.remove('active');
-    }
+    tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
   });
 }
+
+// ── Reset helpers ──────────────────────────────────────────────
+
+// Resets file selection state — buttons are always visible so no show/hide needed
+function clearSingleFileState() {
+  selectedFile = null;
+  var fi = document.getElementById('fi');
+  if (fi) fi.value = '';
+  // Hide the file-info chip inside the dropbox
+  var fiInfo = document.getElementById('fi-info');
+  if (fiInfo) fiInfo.style.display = 'none';
+  // Reset the big icon
+  var dbIcon = document.getElementById('dbIcon');
+  if (dbIcon) { dbIcon.style.color = ''; dbIcon.textContent = 'upload_file'; }
+  // Remove green border
+  var db = document.getElementById('db');
+  if (db) db.classList.remove('got');
+}
+
+// Resets file + all patient form fields
+function clearAllSingle() {
+  clearSingleFileState();
+  var fields = ['pname', 'pid', 'page', 'pnotes'];
+  for (var i = 0; i < fields.length; i++) {
+    var el = document.getElementById(fields[i]);
+    if (el) el.value = '';
+  }
+  var pg = document.getElementById('pgender'); if (pg) pg.selectedIndex = 0;
+  var st = document.getElementById('scantype'); if (st) st.selectedIndex = 0;
+  var pr = document.getElementById('priority'); if (pr) pr.selectedIndex = 0;
+}
+
+function resetSingleUpload() { clearSingleFileState(); }
+
+// ── Bulk reset helpers ──────────────────────────────────────────
+
+// Clears bulk file state only (Re-upload: label opens picker natively)
+function clearBulkFileState() {
+  bulkFiles = [];
+  var fiBulk = document.getElementById('fi-bulk');
+  if (fiBulk) fiBulk.value = '';
+  var fl = document.getElementById('bulk-files-list');    if (fl) fl.innerHTML = '';
+  var pc = document.getElementById('bulk-patients-container'); if (pc) pc.innerHTML = '';
+  var bulkSub = document.getElementById('bulk-sub');      if (bulkSub) bulkSub.style.display = 'none';
+  // Hide count badge
+  var countBadge = document.getElementById('bulk-loaded-count');
+  if (countBadge) countBadge.style.display = 'none';
+  if (bulkDropbox) {
+    bulkDropbox.classList.remove('got');
+    var icon = bulkDropbox.querySelector('.db-icon');
+    if (icon) { icon.style.color = ''; icon.textContent = 'cloud_upload'; }
+  }
+}
+
+// Same — bulk has no extra form fields to clear beyond the file list
+function clearAllBulk() { clearBulkFileState(); }
+function resetBulkUpload() { clearBulkFileState(); }
 
 // Single upload handlers
 var fileInput = document.getElementById('fi');
@@ -44,17 +104,7 @@ if (fileInput && dropbox) {
   fileInput.addEventListener('change', function(e) {
     if (e.target.files.length > 0) {
       selectedFile = e.target.files[0];
-      var fileName = document.getElementById('fi-name');
-      var fileInfo = document.getElementById('fi-info');
-      var dbIcon = document.getElementById('dbIcon');
-      
-      if (fileName) fileName.textContent = selectedFile.name;
-      if (fileInfo) fileInfo.style.display = 'flex';
-      if (dbIcon) {
-        dbIcon.style.color = 'var(--green, #1AD080)';
-        dbIcon.textContent = 'check_circle';
-      }
-      dropbox.classList.add('got');
+      setSingleFileSelected(selectedFile.name);
     }
   });
 
@@ -70,22 +120,24 @@ if (fileInput && dropbox) {
   dropbox.addEventListener('drop', function(e) {
     e.preventDefault();
     dropbox.classList.remove('over');
-    
     if (e.dataTransfer.files.length > 0) {
       selectedFile = e.dataTransfer.files[0];
-      var fileName = document.getElementById('fi-name');
-      var fileInfo = document.getElementById('fi-info');
-      var dbIcon = document.getElementById('dbIcon');
-      
-      if (fileName) fileName.textContent = selectedFile.name;
-      if (fileInfo) fileInfo.style.display = 'flex';
-      if (dbIcon) {
-        dbIcon.style.color = 'var(--green, #1AD080)';
-        dbIcon.textContent = 'check_circle';
-      }
-      dropbox.classList.add('got');
+      setSingleFileSelected(selectedFile.name);
     }
   });
+}
+
+function setSingleFileSelected(name) {
+  // Green icon
+  var dbIcon = document.getElementById('dbIcon');
+  if (dbIcon) { dbIcon.style.color = '#1AD080'; dbIcon.textContent = 'check_circle'; }
+  // File chip inside dropbox
+  var fiInfo = document.getElementById('fi-info');
+  var fiName = document.getElementById('fi-name');
+  if (fiInfo) { if (fiName) fiName.textContent = name; fiInfo.style.display = 'flex'; }
+  // Green border on dropbox
+  var db = document.getElementById('db');
+  if (db) db.classList.add('got');
 }
 
 // Bulk upload handlers
@@ -123,27 +175,21 @@ function handleBulkFiles(files) {
     alert('Please select at least 2 files for bulk upload.');
     return;
   }
-  
   if (files.length > MAX_BULK_FILES) {
     alert('Maximum ' + MAX_BULK_FILES + ' files allowed. You selected ' + files.length + ' files.');
     return;
   }
-  
   bulkFiles = files;
-  
-  // Visual feedback on dropzone
-  if (bulkDropbox) {
-    bulkDropbox.classList.add('got');
-    var dbIcon = bulkDropbox.querySelector('.db-icon');
-    if (dbIcon) {
-      dbIcon.style.color = 'var(--green, #1AD080)';
-      dbIcon.textContent = 'check_circle';
-    }
-  }
-  
+
+  // Show the file count status inline
+  var countBadge = document.getElementById('bulk-loaded-count');
+  var countText  = document.getElementById('bulk-count-text');
+  if (countBadge) countBadge.style.display = 'flex';
+  if (countText)  countText.textContent = files.length + ' file' + (files.length !== 1 ? 's' : '') + ' selected';
+
   renderBulkFilesList();
   renderBulkPatientForms();
-  
+
   var bulkSub = document.getElementById('bulk-sub');
   if (bulkSub) bulkSub.style.display = 'flex';
 }
@@ -296,23 +342,11 @@ function renderBulkPatientForms() {
 
 function removeBulkFile(index) {
   bulkFiles.splice(index, 1);
-  
   if (bulkFiles.length < 2) {
-    bulkFiles = [];
-    document.getElementById('bulk-files-list').innerHTML = '';
-    document.getElementById('bulk-patients-container').innerHTML = '';
-    document.getElementById('bulk-sub').style.display = 'none';
-    
-    // Reset dropzone
-    if (bulkDropbox) {
-      bulkDropbox.classList.remove('got');
-      var dbIcon = bulkDropbox.querySelector('.db-icon');
-      if (dbIcon) {
-        dbIcon.style.color = '';
-        dbIcon.textContent = 'cloud_upload';
-      }
-    }
+    resetBulkUpload();
   } else {
+    var ct = document.getElementById('bulk-loaded-count');
+    if (ct) ct.textContent = bulkFiles.length + ' file' + (bulkFiles.length !== 1 ? 's' : '') + ' selected — fill in patient details below';
     renderBulkFilesList();
     renderBulkPatientForms();
   }

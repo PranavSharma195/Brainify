@@ -528,6 +528,8 @@ def profile_view(request):
 @login_required
 def admin_analytics(request):
     if not _is_admin(request): messages.error(request,'Admin access required.'); return redirect('upload')
+    import calendar as _cal
+    from datetime import date as _date
     now=timezone.now()
     days=[]; counts=[]
     for i in range(13,-1,-1):
@@ -539,6 +541,19 @@ def admin_analytics(request):
         user_days.append(d.strftime('%b %d')); user_counts.append(User.objects.filter(date_joined__date=d).count())
     sev_data=list(SegmentationResult.objects.values('severity').annotate(n=Count('id')).order_by('severity'))
     type_data=list(MRIScan.objects.values('scan_type').annotate(n=Count('id')).order_by('-n'))
+    # Monthly scan data — last 6 months (one query)
+    six_ago=(now-timedelta(days=185)).date()
+    cbq=MRIScan.objects.filter(upload_date__date__gte=six_ago).values('upload_date__date').annotate(n=Count('id'))
+    cbd={row['upload_date__date']:row['n'] for row in cbq}
+    curr=now.date().replace(day=1); monthly_data={}; monthly_labels=[]
+    for i in range(5,-1,-1):
+        mo=curr.month-i; yr=curr.year
+        while mo<=0: mo+=12; yr-=1
+        m=_date(yr,mo,1); key=m.strftime('%b %Y'); monthly_labels.append(key)
+        dim=_cal.monthrange(yr,mo)[1]; md=[]; mc=[]
+        for d2 in range(1,dim+1):
+            day=_date(yr,mo,d2); md.append(day.strftime('%b %d')); mc.append(cbd.get(day,0))
+        monthly_data[key]={'days':md,'counts':mc}
     ctx={
         'total_users':User.objects.count(), 'total_scans':MRIScan.objects.count(),
         'completed':MRIScan.objects.filter(status='completed').count(),
@@ -553,6 +568,8 @@ def admin_analytics(request):
         'sev_counts_json':json.dumps([x['n'] for x in sev_data]),
         'type_labels_json':json.dumps([x['scan_type'] for x in type_data]),
         'type_counts_json':json.dumps([x['n'] for x in type_data]),
+        'monthly_data_json':json.dumps(monthly_data),
+        'monthly_labels_json':json.dumps(monthly_labels),
         'recent_scans':MRIScan.objects.select_related('uploaded_by','result').order_by('-upload_date')[:20],
         'recent_logins':LoginHistory.objects.select_related('user').order_by('-login_time')[:15],
     }
@@ -1221,3 +1238,74 @@ def bulk_download_zip(request):
         print(f"[Bulk ZIP] Fatal error: {str(e)}")
         print(traceback.format_exc())
         return JsonResponse({'error': f'Failed to create ZIP: {str(e)}'}, status=500)
+
+
+# ─── BRAINIFY GAMES ──────────────────────────────────────────────────────────
+
+@login_required
+def games_view(request):
+    from .models import GameScore, GameScoreHistory
+    scores = {s.game: {'score': s.high_score, 'level': s.best_level}
+              for s in GameScore.objects.filter(user=request.user)}
+    # Fetch last 5 scores per game for history display
+    history = {}
+    for entry in GameScoreHistory.objects.filter(user=request.user).order_by('-played_at')[:100]:
+        history.setdefault(entry.game, [])
+        if len(history[entry.game]) < 5:
+            history[entry.game].append({
+                'score': entry.score,
+                'level': entry.level_reached,
+                'date':  entry.played_at.strftime('%b %d'),
+            })
+    import json as _json
+    game_defs = [
+        ('memory_match', 'Memory Match',   'Flip cards and find matching brain-themed pairs.',        10, 'grid_on',       'var(--blue)',   'rgba(96,144,255,.13)'),
+        ('simon_says',   'Simon Says',     'Watch the color sequence light up, then repeat it.',      12, 'touch_app',     'var(--purple)', 'rgba(160,112,255,.13)'),
+        ('number_memory','Number Memory',  'Memorize a growing number sequence before it vanishes.',  10, 'tag',           'var(--green)',  'rgba(40,223,160,.1)'),
+        ('grid_pattern', 'Grid Pattern',   'Cells light up briefly — reproduce the exact pattern.',   10, 'apps',          'var(--amber)',  'rgba(240,156,56,.12)'),
+        ('word_flash',   'Word Flash',     'A brain term flashes briefly — pick it from choices.',    10, 'text_fields',   'var(--teal)',   'rgba(48,212,200,.12)'),
+        ('speed_match',  'Speed Match',    'Does the card match the previous one? React fast.',       10, 'bolt',          'var(--rose)',   'rgba(240,96,160,.12)'),
+        ('color_order',  'Color Order',    'Colors appear one by one — click in the same order.',     10, 'palette',       'var(--coral)',  'rgba(255,138,112,.12)'),
+    ]
+    return render(request, 'core/games.html', {
+        'active':      'games',
+        'scores':      scores,
+        'history':     history,
+        'game_defs':   game_defs,
+        'scores_json': _json.dumps(scores),
+        'history_json':_json.dumps(history),
+    })
+
+
+@csrf_exempt
+@login_required
+def save_game_score(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    from .models import GameScore
+    try:
+        data = json.loads(request.body)
+        game  = data.get('game', '')
+        score = int(data.get('score', 0))
+        level = int(data.get('level', 0))
+        valid_games = [g[0] for g in GameScore.GAMES]
+        if game not in valid_games:
+            return JsonResponse({'error': 'Invalid game'}, status=400)
+        obj, _ = GameScore.objects.get_or_create(user=request.user, game=game)
+        changed = False
+        if score > obj.high_score:
+            obj.high_score = score
+            changed = True
+        if level > obj.best_level:
+            obj.best_level = level
+            changed = True
+        if changed:
+            obj.save()
+        # Always record history entry, keep last 20 per game
+        from .models import GameScoreHistory
+        GameScoreHistory.objects.create(user=request.user, game=game, score=score, level_reached=level)
+        old = GameScoreHistory.objects.filter(user=request.user, game=game).order_by('-played_at')[20:]
+        GameScoreHistory.objects.filter(pk__in=[h.pk for h in old]).delete()
+        return JsonResponse({'ok': True, 'high_score': obj.high_score, 'best_level': obj.best_level})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

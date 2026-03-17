@@ -116,3 +116,38 @@ class PendingSignup(models.Model):
         return timezone.now() > self.created_at + timedelta(hours=24)
 
     def __str__(self): return f"Pending: {self.email}"
+
+
+class GameScore(models.Model):
+    GAMES = [
+        ('memory_match', 'Memory Match'),
+        ('simon_says', 'Simon Says'),
+        ('number_memory', 'Number Memory'),
+        ('grid_pattern', 'Grid Pattern'),
+        ('word_flash', 'Word Flash'),
+        ('speed_match', 'Speed Match'),
+        ('color_order', 'Color Order'),
+    ]
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='game_scores')
+    game       = models.CharField(max_length=30, choices=GAMES)
+    high_score = models.IntegerField(default=0)
+    best_level = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'game')
+
+    def __str__(self): return f"{self.user.username} - {self.game}: {self.high_score}"
+
+
+class GameScoreHistory(models.Model):
+    user          = models.ForeignKey(User, on_delete=models.CASCADE, related_name='game_history')
+    game          = models.CharField(max_length=30, choices=GameScore.GAMES)
+    score         = models.IntegerField()
+    level_reached = models.IntegerField()
+    played_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-played_at']
+
+    def __str__(self): return f"{self.user.username} - {self.game}: {self.score} @ {self.played_at:%Y-%m-%d}"

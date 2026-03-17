@@ -124,7 +124,6 @@ Brainify/
 │
 ├── training/
 │   ├── train_brain_tumor.ipynb      - Main model training notebook (BraTS 2020)
-│   ├── train_local_m2.ipynb         - Apple Silicon optimised training notebook
 │   └── INSTRUCTIONS.md             - Step-by-step training guide
 │
 ├── media/                           - Runtime user uploads and generated result images

@@ -332,6 +332,14 @@ def upload_scan(request):
     f = request.FILES.get('scan_file')
     if not f: return JsonResponse({'error':'No file uploaded.'},status=400)
 
+    max_size_bytes = 500 * 1024 * 1024  # 500MB hard upload limit
+    if f.size > max_size_bytes:
+        uploaded_mb = round(f.size / 1024 / 1024, 2)
+        return JsonResponse(
+            {'error': f'File size limit exceeded: {uploaded_mb}MB uploaded, max 500MB allowed.'},
+            status=413,
+        )
+
     patient_name   = request.POST.get('patient_name','Unknown').strip() or 'Unknown'
     patient_id     = request.POST.get('patient_id','').strip()
     patient_age    = request.POST.get('patient_age','').strip()
